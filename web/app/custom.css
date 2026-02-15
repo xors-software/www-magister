@@ -1,0 +1,42 @@
+@layer base {
+	body {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 100dvh;
+	}
+}
+
+/* Bar chart animation */
+@keyframes barGrow {
+	from {
+		height: 0 !important;
+	}
+}
+
+.animate-bar-grow {
+	animation: barGrow 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.animation-delay-150 {
+	animation-delay: 0.15s;
+}
+
+.animation-delay-300 {
+	animation-delay: 0.3s;
+}
+
+.animation-delay-450 {
+	animation-delay: 0.45s;
+}
+
+/* Link styles */
+a {
+	transition: text-decoration-color 0.2s;
+}
+
+/* Selection color */
+::selection {
+	background: rgba(79, 156, 247, 0.3);
+	color: #fff;
+}

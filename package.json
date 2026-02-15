@@ -1,0 +1,23 @@
+{
+	"name": "www-magister",
+	"description": "Magister — AI-powered diagnostic engine for hybrid high-dosage tutoring.",
+	"version": "1.0.0",
+	"private": true,
+	"workspaces": ["web", "server"],
+	"scripts": {
+		"dev": "bun run --parallel --filter '*' dev",
+		"dev:web": "bun run --filter web dev",
+		"dev:server": "bun run --filter server dev",
+		"build": "bun run --filter '*' build",
+		"build:web": "bun run --filter web build",
+		"build:server": "bun run --filter server build",
+		"start": "bun run --filter '*' start",
+		"test": "bun run --filter '*' test",
+		"lint": "bun run --filter '*' lint",
+		"lint:fix": "bun run --filter '*' lint:fix",
+		"format": "bun run --filter '*' format",
+		"format:fix": "bun run --filter '*' format:fix",
+		"type-check": "bun run --filter '*' type-check",
+		"clean": "rm -rf node_modules web/node_modules server/node_modules"
+	}
+}

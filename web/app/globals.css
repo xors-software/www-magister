@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* Design tokens */
+:root {
+	/* Magister dark palette */
+	--bg: #0a0a0a;
+	--surface: #141414;
+	--surface-2: #1a1a1a;
+	--border: #2a2a2a;
+	--text: #e8e8e8;
+	--text-dim: #888;
+	--text-muted: #555;
+	--accent: #4f9cf7;
+	--red: #ef4444;
+	--amber: #f59e0b;
+	--green: #22c55e;
+	--teal: #14b8a6;
+
+	/* Shadcn-compatible tokens */
+	--background: 0 0% 4%;
+	--foreground: 0 0% 91%;
+	--card: 0 0% 8%;
+	--card-foreground: 0 0% 91%;
+	--popover: 0 0% 8%;
+	--popover-foreground: 0 0% 91%;
+	--primary: 213 93% 64%;
+	--primary-foreground: 0 0% 100%;
+	--secondary: 0 0% 10%;
+	--secondary-foreground: 0 0% 91%;
+	--muted: 0 0% 10%;
+	--muted-foreground: 0 0% 53%;
+	--accent: 213 93% 64%;
+	--accent-foreground: 0 0% 100%;
+	--destructive: 0 84% 60%;
+	--destructive-foreground: 0 0% 98%;
+	--border: 0 0% 16%;
+	--input: 0 0% 16%;
+	--ring: 213 93% 64%;
+	--radius: 0.625rem;
+
+	/* Font families */
+	--font-serif: var(--font-newsreader), Georgia, serif;
+	--font-sans: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+	--font-mono: var(--font-dm-mono), ui-monospace, monospace;
+
+	/* Safe-area insets for iOS notch */
+	--safe-top: env(safe-area-inset-top);
+	--safe-bottom: env(safe-area-inset-bottom);
+	--safe-left: env(safe-area-inset-left);
+	--safe-right: env(safe-area-inset-right);
+}
+
+@theme inline {
+	--color-background: hsl(var(--background));
+	--color-foreground: hsl(var(--foreground));
+	--color-card: hsl(var(--card));
+	--color-card-foreground: hsl(var(--card-foreground));
+	--color-popover: hsl(var(--popover));
+	--color-popover-foreground: hsl(var(--popover-foreground));
+	--color-primary: hsl(var(--primary));
+	--color-primary-foreground: hsl(var(--primary-foreground));
+	--color-secondary: hsl(var(--secondary));
+	--color-secondary-foreground: hsl(var(--secondary-foreground));
+	--color-muted: hsl(var(--muted));
+	--color-muted-foreground: hsl(var(--muted-foreground));
+	--color-accent: hsl(var(--accent));
+	--color-accent-foreground: hsl(var(--accent-foreground));
+	--color-destructive: hsl(var(--destructive));
+	--color-destructive-foreground: hsl(var(--destructive-foreground));
+	--color-border: hsl(var(--border));
+	--color-input: hsl(var(--input));
+	--color-ring: hsl(var(--ring));
+
+	--font-serif: var(--font-serif);
+	--font-sans: var(--font-sans);
+	--font-mono: var(--font-mono);
+
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+	* {
+		border-color: hsl(var(--border));
+	}
+
+	html {
+		scroll-behavior: smooth;
+	}
+
+	body {
+		padding-top: var(--safe-top);
+		padding-bottom: var(--safe-bottom);
+		margin: 0;
+		min-height: 100dvh;
+		-webkit-font-smoothing: antialiased;
+	}
+}
+
+@layer utilities {
+	.text-balance {
+		text-wrap: balance;
+	}
+
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+
+	.no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+
+	.backface-hidden {
+		backface-visibility: hidden;
+		-webkit-backface-visibility: hidden;
+	}
+}
