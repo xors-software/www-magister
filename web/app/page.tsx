@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 import { APP_CONFIG } from "@/config"
 
 export const metadata: Metadata = {
@@ -72,9 +73,19 @@ export default function Home() {
 					The Best Education Intervention Can&rsquo;t Scale. AI Could Fix That — But Nobody&rsquo;s Building the Right Thing.
 				</h1>
 
-				<p className="text-[19px] text-[#888] leading-[1.6] mb-10 italic font-serif">
+				<p className="text-[19px] text-[#888] leading-[1.6] mb-8 italic font-serif">
 					High-dosage tutoring is the strongest evidence-based intervention in K-12 education. It costs $2,500/student and we can&rsquo;t hire enough tutors. A UChicago RCT proved technology can replace half the tutor time — but the technology they used was from 1994.
 				</p>
+
+				<Link
+					href="/demo"
+					className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#4f9cf7] text-white font-sans text-[15px] font-semibold hover:bg-[#3d8be5] transition-colors no-underline mb-10"
+				>
+					<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M9 1.5L11.3 6.1L16.5 6.9L12.75 10.55L13.6 15.7L9 13.3L4.4 15.7L5.25 10.55L1.5 6.9L6.7 6.1L9 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+					</svg>
+					Try the tutoring tool
+				</Link>
 
 				<Divider />
 
@@ -197,7 +208,21 @@ export default function Home() {
 				</BodyText>
 
 				<BodyText>
-					I&rsquo;m building this. If you&rsquo;re a district leader running a tutoring program, a researcher studying hybrid models, or a teacher doing intervention blocks and want to talk — reach out.
+					I&rsquo;m building this. You can try the Socratic diagnostic engine right now — it runs a 25-minute session, generates SVG diagrams, and produces a tutor handoff artifact at the end.
+				</BodyText>
+
+				<Link
+					href="/demo"
+					className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-[#0a0a0a] font-sans text-[15px] font-semibold hover:bg-[#e8e8e8] transition-colors no-underline mb-5"
+				>
+					Try a tutoring session
+					<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+					</svg>
+				</Link>
+
+				<BodyText>
+					If you&rsquo;re a district leader running a tutoring program, a researcher studying hybrid models, or a teacher doing intervention blocks and want to talk — reach out.
 				</BodyText>
 
 				{/* ── Sources ── */}

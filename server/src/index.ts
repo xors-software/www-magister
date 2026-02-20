@@ -2,6 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { healthRoutes } from "./routes/health";
+import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
 
 const app = new Elysia()
@@ -15,7 +16,7 @@ const app = new Elysia()
 		swagger({
 			documentation: {
 				info: {
-					title: "XORS API",
+					title: "Magister API",
 					version: "1.0.0",
 					description: "Elysia-powered API for XORS projects",
 				},
@@ -24,6 +25,7 @@ const app = new Elysia()
 	)
 	.use(healthRoutes)
 	.use(usersRoutes)
+	.use(sessionsRoutes)
 	.listen(process.env.PORT || 3001);
 
 console.log(
