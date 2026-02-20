@@ -1,18 +1,27 @@
-import { cors } from "@elysiajs/cors";
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { healthRoutes } from "./routes/health";
 import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
 
+const ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS";
+const ALLOWED_HEADERS = "Content-Type, Authorization, Accept";
+
 const app = new Elysia()
-	.use(
-		cors({
-			origin: true,
-			methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-			allowedHeaders: true,
-		}),
-	)
+	.onRequest(({ request, set }) => {
+		const origin = request.headers.get("origin");
+		const allowed = process.env.CORS_ORIGIN || origin || "*";
+
+		set.headers["Access-Control-Allow-Origin"] = allowed;
+		set.headers["Access-Control-Allow-Methods"] = ALLOWED_METHODS;
+		set.headers["Access-Control-Allow-Headers"] = ALLOWED_HEADERS;
+		set.headers["Access-Control-Max-Age"] = "86400";
+
+		if (request.method === "OPTIONS") {
+			set.status = 204;
+			return "";
+		}
+	})
 	.use(
 		swagger({
 			documentation: {
