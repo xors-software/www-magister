@@ -12,12 +12,11 @@ const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
 const app = new Elysia()
 	.use(
 		cors({
-			origin: (request) => {
-				const requestOrigin = request.headers.get("origin");
-				if (!requestOrigin) return true;
-				return allowedOrigins.some((o) => requestOrigin === o);
-			},
+			origin: allowedOrigins,
+			methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+			allowedHeaders: ["Content-Type", "Authorization"],
 			credentials: true,
+			preflight: true,
 		}),
 	)
 	.use(
