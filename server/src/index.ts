@@ -5,10 +5,18 @@ import { healthRoutes } from "./routes/health";
 import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
 
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+	.split(",")
+	.map((o) => o.trim());
+
 const app = new Elysia()
 	.use(
 		cors({
-			origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+			origin: (request) => {
+				const requestOrigin = request.headers.get("origin");
+				if (!requestOrigin) return true;
+				return allowedOrigins.some((o) => requestOrigin === o);
+			},
 			credentials: true,
 		}),
 	)
