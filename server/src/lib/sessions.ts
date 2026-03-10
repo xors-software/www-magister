@@ -1,4 +1,5 @@
-import type { Problem, Topic } from "./problems";
+import type { EducationLevel, Problem, Topic } from "./problems";
+export type { EducationLevel };
 
 export interface KnowledgeGap {
 	concept: string;
@@ -42,6 +43,7 @@ export interface ProblemAttempt {
 export interface Session {
 	id: string;
 	studentName: string;
+	educationLevel: EducationLevel;
 	gradeLevel: number;
 	topic: Topic;
 	status: "active" | "completed";
@@ -80,12 +82,14 @@ function generateId(): string {
 
 export function createSession(
 	studentName: string,
+	educationLevel: EducationLevel,
 	gradeLevel: number,
 	topic: Topic,
 ): Session {
 	const session: Session = {
 		id: generateId(),
 		studentName,
+		educationLevel,
 		gradeLevel,
 		topic,
 		status: "active",

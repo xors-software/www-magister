@@ -9,7 +9,7 @@ import {
 	getNextProblem,
 	getProblemsForTopic,
 } from "../lib/problems";
-import type { Topic } from "../lib/problems";
+import type { EducationLevel, Topic } from "../lib/problems";
 import {
 	addKnowledgeGap,
 	addMessage,
@@ -52,12 +52,17 @@ function viewMsg(m: {
 }
 
 export const sessionsRoutes = new Elysia({ prefix: "/sessions" })
-	.get("/topics", () => getAllTopics())
+	.get("/topics", ({ query }) => {
+		const level = query?.level as EducationLevel | undefined;
+		return getAllTopics(level);
+	})
 	.post(
 		"/",
 		async ({ body }) => {
+			const educationLevel = (body.educationLevel || "k12") as EducationLevel;
 			const session = createSession(
 				body.studentName,
+				educationLevel,
 				body.gradeLevel,
 				body.topic as Topic,
 			);
@@ -80,6 +85,7 @@ export const sessionsRoutes = new Elysia({ prefix: "/sessions" })
 				session: {
 					id: s.id,
 					studentName: s.studentName,
+					educationLevel: s.educationLevel,
 					gradeLevel: s.gradeLevel,
 					topic: s.topic,
 					status: s.status,
@@ -94,7 +100,8 @@ export const sessionsRoutes = new Elysia({ prefix: "/sessions" })
 		{
 			body: t.Object({
 				studentName: t.String({ minLength: 1 }),
-				gradeLevel: t.Number({ minimum: 5, maximum: 12 }),
+				educationLevel: t.Optional(t.String()),
+				gradeLevel: t.Number({ minimum: 5, maximum: 16 }),
 				topic: t.String(),
 			}),
 		},
@@ -112,6 +119,7 @@ export const sessionsRoutes = new Elysia({ prefix: "/sessions" })
 				session: {
 					id: s.id,
 					studentName: s.studentName,
+					educationLevel: s.educationLevel,
 					gradeLevel: s.gradeLevel,
 					topic: s.topic,
 					status: s.status,

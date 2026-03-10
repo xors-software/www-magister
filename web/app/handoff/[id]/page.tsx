@@ -115,7 +115,7 @@ export default function HandoffPage() {
 						</div>
 						<div>
 							<h1 className="font-serif text-[22px] font-bold text-white leading-none">{handoff.studentName}</h1>
-							<span className="font-sans text-xs text-[#555]">Grade {handoff.gradeLevel} &middot; {handoff.topic} &middot; {handoff.sessionDuration}</span>
+							<span className="font-sans text-xs text-[#555]">{handoff.gradeLevel > 12 ? "University" : `Grade ${handoff.gradeLevel}`} &middot; {handoff.topic} &middot; {handoff.sessionDuration}</span>
 						</div>
 					</div>
 				</div>
