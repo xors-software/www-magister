@@ -42,7 +42,7 @@ const PROFESSIONAL_TOPICS = [
 
 const COMPETITION_TOPICS = [
 	{ id: "ncae-linux-hardening", label: "Linux System Hardening", description: "SSH config, user audits, file permissions, service lockdown", icon: ">" },
-	{ id: "ncae-network-defense", label: "Network Defense", description: "iptables rules, DNS security, firewall configuration", icon: "#" },
+	{ id: "ncae-network-defense", label: "Network Defense", description: "nftables rules, DNS security, firewall configuration", icon: "#" },
 	{ id: "ncae-service-uptime", label: "Service Configuration & Uptime", description: "Keep web servers, databases, and services running under attack", icon: "^" },
 	{ id: "ncae-scripting", label: "Scripting & Automation", description: "Bash/Python for monitoring, defense automation, service checks", icon: "$" },
 	{ id: "ncae-incident-response", label: "Incident Detection & Response", description: "Spot attacks in logs, kill reverse shells, investigate compromises", icon: "!" },
