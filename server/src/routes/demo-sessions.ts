@@ -101,7 +101,7 @@ export const demoSessionsRoutes = new Elysia({ prefix: "/demo-sessions" })
 			body: t.Object({
 				studentName: t.String({ minLength: 1 }),
 				educationLevel: t.Optional(t.String()),
-				gradeLevel: t.Number({ minimum: 5, maximum: 16 }),
+				gradeLevel: t.Number({ minimum: 0, maximum: 16 }),
 				topic: t.String(),
 			}),
 		},
