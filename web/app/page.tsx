@@ -77,15 +77,27 @@ export default function Home() {
 					High-dosage tutoring is the strongest evidence-based intervention in K-12 education. It costs $2,500/student and we can&rsquo;t hire enough tutors. A UChicago RCT proved technology can replace half the tutor time — but the technology they used was from 1994.
 				</p>
 
-				<Link
-					href="/demo"
-					className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#4f9cf7] text-white font-sans text-[15px] font-semibold hover:bg-[#3d8be5] transition-colors no-underline mb-10"
-				>
-					<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M9 1.5L11.3 6.1L16.5 6.9L12.75 10.55L13.6 15.7L9 13.3L4.4 15.7L5.25 10.55L1.5 6.9L6.7 6.1L9 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
-					</svg>
-					Try the tutoring tool
-				</Link>
+				<div className="flex flex-wrap gap-3 mb-10">
+					<Link
+						href="/teacher"
+						className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#4f9cf7] text-white font-sans text-[15px] font-semibold hover:bg-[#3d8be5] transition-colors no-underline"
+					>
+						<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M3 6L9 2L15 6V13L9 17L3 13V6Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+							<path d="M9 2V17" stroke="currentColor" strokeWidth="1.5"/>
+						</svg>
+						Create a course
+					</Link>
+					<Link
+						href="/demo/classic"
+						className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#141414] border border-[#2a2a2a] text-white font-sans text-[15px] font-semibold hover:border-[#555] transition-colors no-underline"
+					>
+						<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M9 1.5L11.3 6.1L16.5 6.9L12.75 10.55L13.6 15.7L9 13.3L4.4 15.7L5.25 10.55L1.5 6.9L6.7 6.1L9 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+						</svg>
+						Try Socratic tutor demo
+					</Link>
+				</div>
 
 				<Divider />
 
@@ -208,18 +220,38 @@ export default function Home() {
 				</BodyText>
 
 				<BodyText>
-					I&rsquo;m building this. You can try the Socratic diagnostic engine right now — it runs a 25-minute session, generates SVG diagrams, and produces a tutor handoff artifact at the end.
+					I&rsquo;m building this. You can try it right now in two ways:
 				</BodyText>
 
-				<Link
-					href="/demo"
-					className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-[#0a0a0a] font-sans text-[15px] font-semibold hover:bg-[#e8e8e8] transition-colors no-underline mb-5"
-				>
-					Try a tutoring session
-					<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-					</svg>
-				</Link>
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-8">
+					<Link href="/teacher" className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#4f9cf7]/40 hover:bg-[#4f9cf7]/5 transition-all no-underline group block">
+						<div className="w-9 h-9 rounded-lg bg-[#4f9cf7]/15 flex items-center justify-center mb-3">
+							<svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-[#4f9cf7]">
+								<path d="M3 6L9 2L15 6V13L9 17L3 13V6Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+								<path d="M9 2V17" stroke="currentColor" strokeWidth="1.5"/>
+							</svg>
+						</div>
+						<div className="font-sans text-[15px] font-semibold text-white mb-1 group-hover:text-[#4f9cf7] transition-colors">
+							Course-based tutoring
+						</div>
+						<div className="font-sans text-sm text-[#888] leading-[1.5]">
+							Create a course, upload your materials (PDFs, notes), and let students chat with an AI tutor grounded in your content.
+						</div>
+					</Link>
+					<Link href="/demo/classic" className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#4f9cf7]/40 hover:bg-[#4f9cf7]/5 transition-all no-underline group block">
+						<div className="w-9 h-9 rounded-lg bg-[#4f9cf7]/15 flex items-center justify-center mb-3">
+							<svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-[#4f9cf7]">
+								<path d="M9 1.5L11.3 6.1L16.5 6.9L12.75 10.55L13.6 15.7L9 13.3L4.4 15.7L5.25 10.55L1.5 6.9L6.7 6.1L9 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+							</svg>
+						</div>
+						<div className="font-sans text-[15px] font-semibold text-white mb-1 group-hover:text-[#4f9cf7] transition-colors">
+							Socratic tutor demo
+						</div>
+						<div className="font-sans text-sm text-[#888] leading-[1.5]">
+							25-minute diagnostic session with pre-built problems, SVG diagrams, and a tutor handoff artifact at the end.
+						</div>
+					</Link>
+				</div>
 
 				<BodyText>
 					If you&rsquo;re a district leader running a tutoring program, a researcher studying hybrid models, or a teacher doing intervention blocks and want to talk — reach out.
