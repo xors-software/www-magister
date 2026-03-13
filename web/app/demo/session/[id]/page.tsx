@@ -369,6 +369,12 @@ function RenderMath({ text, className }: { text: string; className?: string }) {
 function renderMathInText(text: string): string {
 	let result = text
 
+	const currencySlots: string[] = []
+	result = result.replace(/\$(\d[\d,]*(?:\.\d+)?(?:[KkMmBb])?(?:\/\w+)?)/g, (match) => {
+		currencySlots.push(match)
+		return `\x00CUR${currencySlots.length - 1}\x00`
+	})
+
 	result = result.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
 
 	result = result.replace(/\$\$([\s\S]*?)\$\$/g, (_match, tex) => {
@@ -386,6 +392,8 @@ function renderMathInText(text: string): string {
 			return `<code>${tex}</code>`
 		}
 	})
+
+	result = result.replace(/\x00CUR(\d+)\x00/g, (_, idx) => currencySlots[parseInt(idx)])
 
 	result = result.replace(/\n/g, "<br/>")
 
