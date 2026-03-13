@@ -6,7 +6,7 @@ import Link from "next/link"
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
-type EducationLevel = "k12" | "university" | "professional"
+type EducationLevel = "k12" | "university" | "professional" | "competition"
 
 const K12_TOPICS = [
 	{ id: "linear-equations", label: "Linear Equations", description: "Solve one-step through multi-step equations", icon: "x" },
@@ -40,6 +40,17 @@ const PROFESSIONAL_TOPICS = [
 	{ id: "cissp-software-security", label: "Domain 8: Software Development Security", description: "Secure SDLC, injection attacks, DevSecOps", icon: "8" },
 ]
 
+const COMPETITION_TOPICS = [
+	{ id: "ncae-linux-hardening", label: "Linux System Hardening", description: "SSH config, user audits, file permissions, service lockdown", icon: ">" },
+	{ id: "ncae-network-defense", label: "Network Defense", description: "iptables rules, DNS security, firewall configuration", icon: "#" },
+	{ id: "ncae-service-uptime", label: "Service Configuration & Uptime", description: "Keep web servers, databases, and services running under attack", icon: "^" },
+	{ id: "ncae-scripting", label: "Scripting & Automation", description: "Bash/Python for monitoring, defense automation, service checks", icon: "$" },
+	{ id: "ncae-incident-response", label: "Incident Detection & Response", description: "Spot attacks in logs, kill reverse shells, investigate compromises", icon: "!" },
+	{ id: "ncae-ctf-crypto", label: "CTF: Cryptography", description: "Base64, Caesar ciphers, encoding vs. encryption", icon: "?" },
+	{ id: "ncae-ctf-forensics", label: "CTF: Digital Forensics", description: "File analysis, magic bytes, attack reconstruction", icon: "~" },
+	{ id: "ncae-windows-hardening", label: "Windows System Hardening", description: "Firewall, services, account policies, PowerShell hardening", icon: "W" },
+]
+
 const K12_GRADES = [6, 7, 8, 9, 10, 11, 12]
 
 export default function DemoPage() {
@@ -51,15 +62,20 @@ export default function DemoPage() {
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState("")
 
-	const currentTopics = educationLevel === "professional"
-		? PROFESSIONAL_TOPICS
-		: educationLevel === "university"
-			? UNIVERSITY_TOPICS
-			: K12_TOPICS
+	const currentTopics = educationLevel === "competition"
+		? COMPETITION_TOPICS
+		: educationLevel === "professional"
+			? PROFESSIONAL_TOPICS
+			: educationLevel === "university"
+				? UNIVERSITY_TOPICS
+				: K12_TOPICS
 
 	function switchEducationLevel(level: EducationLevel) {
 		setEducationLevel(level)
-		if (level === "professional") {
+		if (level === "competition") {
+			setTopic("ncae-linux-hardening")
+			setGrade(0)
+		} else if (level === "professional") {
 			setTopic("cissp-security-risk-mgmt")
 			setGrade(0)
 		} else if (level === "university") {
@@ -172,7 +188,18 @@ export default function DemoPage() {
 									: "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
 							}`}
 						>
-							CISSP Prep
+							CISSP
+						</button>
+						<button
+							type="button"
+							onClick={() => switchEducationLevel("competition")}
+							className={`flex-1 py-2.5 rounded-lg font-sans text-sm font-medium transition-all ${
+								educationLevel === "competition"
+									? "bg-[#4f9cf7] text-white"
+									: "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
+							}`}
+						>
+							Cyber Games
 						</button>
 					</div>
 				</div>
@@ -205,7 +232,7 @@ export default function DemoPage() {
 				{/* Topic */}
 				<div className="mb-8">
 					<label className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
-						{educationLevel === "professional" ? "CISSP Domain" : educationLevel === "university" ? "Subject" : "Topic"}
+						{educationLevel === "competition" ? "Skill Area" : educationLevel === "professional" ? "CISSP Domain" : educationLevel === "university" ? "Subject" : "Topic"}
 					</label>
 					<div className="grid gap-2">
 						{currentTopics.map((t) => (

