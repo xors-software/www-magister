@@ -29,8 +29,10 @@ export default function CourseDetailPage() {
 	const [error, setError] = useState("")
 
 	const [showMaterialForm, setShowMaterialForm] = useState(false)
+	const [materialMode, setMaterialMode] = useState<"text" | "file">("file")
 	const [materialTitle, setMaterialTitle] = useState("")
 	const [materialContent, setMaterialContent] = useState("")
+	const [materialFile, setMaterialFile] = useState<File | null>(null)
 	const [addingMaterial, setAddingMaterial] = useState(false)
 
 	const [editingCourse, setEditingCourse] = useState(false)
@@ -63,15 +65,34 @@ export default function CourseDetailPage() {
 	}, [fetchCourse])
 
 	async function handleAddMaterial() {
-		if (!materialTitle.trim() || !materialContent.trim()) return
 		setAddingMaterial(true)
+		setError("")
 
 		try {
-			const res = await fetch(`${API}/courses/${id}/materials`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ title: materialTitle.trim(), content: materialContent.trim() }),
-			})
+			let res: Response
+
+			if (materialMode === "file" && materialFile) {
+				const formData = new FormData()
+				formData.append("file", materialFile)
+				if (materialTitle.trim()) {
+					formData.append("title", materialTitle.trim())
+				}
+				res = await fetch(`${API}/courses/${id}/materials/upload`, {
+					method: "POST",
+					body: formData,
+				})
+			} else {
+				if (!materialTitle.trim() || !materialContent.trim()) {
+					setAddingMaterial(false)
+					return
+				}
+				res = await fetch(`${API}/courses/${id}/materials`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ title: materialTitle.trim(), content: materialContent.trim() }),
+				})
+			}
+
 			const material = await res.json()
 			if (material.error) {
 				setError(material.error)
@@ -79,6 +100,7 @@ export default function CourseDetailPage() {
 				setMaterials((prev) => [...prev, material])
 				setMaterialTitle("")
 				setMaterialContent("")
+				setMaterialFile(null)
 				setShowMaterialForm(false)
 			}
 		} catch {
@@ -224,9 +246,35 @@ export default function CourseDetailPage() {
 
 				{showMaterialForm && (
 					<div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-5 mb-4">
+						{/* Mode toggle */}
+						<div className="flex gap-1 mb-4 bg-[#0a0a0a] rounded-lg p-1">
+							<button
+								type="button"
+								onClick={() => setMaterialMode("file")}
+								className={`flex-1 py-2 rounded-md font-sans text-sm font-medium transition-all ${
+									materialMode === "file"
+										? "bg-[#2a2a2a] text-white"
+										: "text-[#555] hover:text-[#888]"
+								}`}
+							>
+								Upload file
+							</button>
+							<button
+								type="button"
+								onClick={() => setMaterialMode("text")}
+								className={`flex-1 py-2 rounded-md font-sans text-sm font-medium transition-all ${
+									materialMode === "text"
+										? "bg-[#2a2a2a] text-white"
+										: "text-[#555] hover:text-[#888]"
+								}`}
+							>
+								Paste text
+							</button>
+						</div>
+
 						<div className="mb-4">
 							<label htmlFor="mat-title" className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
-								Title
+								Title {materialMode === "file" && <span className="normal-case font-normal">(optional — uses filename if empty)</span>}
 							</label>
 							<input
 								id="mat-title"
@@ -237,29 +285,75 @@ export default function CourseDetailPage() {
 								className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#4f9cf7] transition-colors"
 							/>
 						</div>
-						<div className="mb-4">
-							<label htmlFor="mat-content" className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
-								Content
-							</label>
-							<textarea
-								id="mat-content"
-								value={materialContent}
-								onChange={(e) => setMaterialContent(e.target.value)}
-								placeholder="Paste lecture notes, textbook excerpts, or any learning material..."
-								rows={10}
-								className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#4f9cf7] transition-colors resize-y font-mono text-sm leading-relaxed"
-							/>
-							<p className="font-sans text-xs text-[#555] mt-1">
-								Paste text content — lecture notes, textbook sections, etc.
-							</p>
-						</div>
+
+						{materialMode === "file" ? (
+							<div className="mb-4">
+								<label htmlFor="mat-file" className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
+									File
+								</label>
+								<label
+									htmlFor="mat-file"
+									className={`flex flex-col items-center justify-center w-full h-32 bg-[#0a0a0a] border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+										materialFile ? "border-[#4f9cf7]/40 bg-[#4f9cf7]/5" : "border-[#2a2a2a] hover:border-[#555]"
+									}`}
+								>
+									{materialFile ? (
+										<div className="text-center">
+											<p className="font-sans text-sm text-white font-medium">{materialFile.name}</p>
+											<p className="font-sans text-xs text-[#555] mt-1">
+												{(materialFile.size / 1024).toFixed(0)} KB
+											</p>
+										</div>
+									) : (
+										<div className="text-center">
+											<svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2 text-[#555]">
+												<path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+												<path d="M17 8L12 3L7 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+												<path d="M12 3V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+											</svg>
+											<p className="font-sans text-sm text-[#555]">
+												Drop a file or click to browse
+											</p>
+											<p className="font-sans text-xs text-[#444] mt-1">
+												PDF, TXT, MD, or other text files
+											</p>
+										</div>
+									)}
+									<input
+										id="mat-file"
+										type="file"
+										className="hidden"
+										accept=".pdf,.txt,.md,.csv,.doc,.docx"
+										onChange={(e) => setMaterialFile(e.target.files?.[0] || null)}
+									/>
+								</label>
+							</div>
+						) : (
+							<div className="mb-4">
+								<label htmlFor="mat-content" className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
+									Content
+								</label>
+								<textarea
+									id="mat-content"
+									value={materialContent}
+									onChange={(e) => setMaterialContent(e.target.value)}
+									placeholder="Paste lecture notes, textbook excerpts, or any learning material..."
+									rows={10}
+									className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#4f9cf7] transition-colors resize-y font-mono text-sm leading-relaxed"
+								/>
+							</div>
+						)}
+
 						<button
 							type="button"
 							onClick={handleAddMaterial}
-							disabled={addingMaterial || !materialTitle.trim() || !materialContent.trim()}
+							disabled={
+								addingMaterial ||
+								(materialMode === "file" ? !materialFile : !materialTitle.trim() || !materialContent.trim())
+							}
 							className="w-full py-3 rounded-xl bg-[#4f9cf7] text-white font-sans text-sm font-semibold hover:bg-[#3d8be5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							{addingMaterial ? "Adding..." : "Add material"}
+							{addingMaterial ? "Processing..." : materialMode === "file" ? "Upload & extract text" : "Add material"}
 						</button>
 					</div>
 				)}

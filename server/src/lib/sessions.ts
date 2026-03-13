@@ -58,10 +58,9 @@ function rowToMessage(row: Record<string, unknown>): Message {
 export function createSession(courseId: string, studentName: string): Session {
 	const id = generateId();
 	const now = new Date().toISOString();
-	db.run(
+	db.query(
 		"INSERT INTO sessions (id, course_id, student_name, status, started_at) VALUES (?, ?, ?, 'active', ?)",
-		[id, courseId, studentName, now],
-	);
+	).run(id, courseId, studentName, now);
 	return { id, courseId, studentName, status: "active", startedAt: now, completedAt: null };
 }
 
@@ -72,7 +71,7 @@ export function getSession(id: string): Session | null {
 
 export function completeSession(id: string): Session | null {
 	const now = new Date().toISOString();
-	db.run("UPDATE sessions SET status = 'completed', completed_at = ? WHERE id = ?", [now, id]);
+	db.query("UPDATE sessions SET status = 'completed', completed_at = ? WHERE id = ?").run(now, id);
 	return getSession(id);
 }
 
@@ -99,10 +98,9 @@ export function addMessage(
 	const diagramsJson = diagrams.length > 0 ? JSON.stringify(diagrams) : null;
 	const diagnosticJson = diagnostic ? JSON.stringify(diagnostic) : null;
 
-	const result = db.run(
+	const result = db.query(
 		"INSERT INTO messages (session_id, role, content, diagrams, diagnostic, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-		[sessionId, role, content, diagramsJson, diagnosticJson, now],
-	);
+	).run(sessionId, role, content, diagramsJson, diagnosticJson, now);
 
 	return {
 		id: Number(result.lastInsertRowid),

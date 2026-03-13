@@ -94,6 +94,9 @@ export default function DemoPage() {
 					<Link href="/teacher" className="font-sans text-sm text-[#555] hover:text-[#888] transition-colors no-underline">
 						Teacher dashboard
 					</Link>
+					<Link href="/demo/classic" className="font-sans text-sm text-[#555] hover:text-[#888] transition-colors no-underline">
+						Try Socratic tutor demo
+					</Link>
 				</div>
 			</div>
 		</main>

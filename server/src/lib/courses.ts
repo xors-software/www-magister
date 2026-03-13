@@ -43,10 +43,9 @@ function rowToMaterial(row: Record<string, unknown>): CourseMaterial {
 export function createCourse(name: string, description: string): Course {
 	const id = generateId("crs");
 	const now = new Date().toISOString();
-	db.run(
+	db.query(
 		"INSERT INTO courses (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		[id, name, description, now, now],
-	);
+	).run(id, name, description, now, now);
 	return { id, name, description, createdAt: now, updatedAt: now };
 }
 
@@ -68,15 +67,14 @@ export function updateCourse(id: string, updates: { name?: string; description?:
 	const description = updates.description ?? course.description;
 	const now = new Date().toISOString();
 
-	db.run(
+	db.query(
 		"UPDATE courses SET name = ?, description = ?, updated_at = ? WHERE id = ?",
-		[name, description, now, id],
-	);
+	).run(name, description, now, id);
 	return { ...course, name, description, updatedAt: now };
 }
 
 export function deleteCourse(id: string): boolean {
-	const result = db.run("DELETE FROM courses WHERE id = ?", [id]);
+	const result = db.query("DELETE FROM courses WHERE id = ?").run(id);
 	return result.changes > 0;
 }
 
@@ -84,10 +82,9 @@ export function addMaterial(courseId: string, title: string, content: string): C
 	if (!getCourse(courseId)) return null;
 	const id = generateId("mat");
 	const now = new Date().toISOString();
-	db.run(
+	db.query(
 		"INSERT INTO course_materials (id, course_id, title, content, created_at) VALUES (?, ?, ?, ?, ?)",
-		[id, courseId, title, content, now],
-	);
+	).run(id, courseId, title, content, now);
 	return { id, courseId, title, content, createdAt: now };
 }
 
@@ -110,12 +107,12 @@ export function updateMaterial(id: string, updates: { title?: string; content?: 
 	const title = updates.title ?? material.title;
 	const content = updates.content ?? material.content;
 
-	db.run("UPDATE course_materials SET title = ?, content = ? WHERE id = ?", [title, content, id]);
+	db.query("UPDATE course_materials SET title = ?, content = ? WHERE id = ?").run(title, content, id);
 	return { ...material, title, content };
 }
 
 export function deleteMaterial(id: string): boolean {
-	const result = db.run("DELETE FROM course_materials WHERE id = ?", [id]);
+	const result = db.query("DELETE FROM course_materials WHERE id = ?").run(id);
 	return result.changes > 0;
 }
 

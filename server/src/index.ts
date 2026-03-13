@@ -1,6 +1,7 @@
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { coursesRoutes } from "./routes/courses";
+import { demoSessionsRoutes } from "./routes/demo-sessions";
 import { healthRoutes } from "./routes/health";
 import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
@@ -34,6 +35,7 @@ const app = new Elysia()
 	.use(usersRoutes)
 	.use(coursesRoutes)
 	.use(sessionsRoutes)
+	.use(demoSessionsRoutes)
 	.listen(process.env.PORT || 3001);
 
 console.log(
