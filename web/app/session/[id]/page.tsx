@@ -14,38 +14,29 @@ interface SessionMsg {
 	timestamp: string
 }
 
-interface ProblemInfo {
-	id: string
-	question: string
-	topic: string
-	subtopic: string
-	difficulty: string
-}
-
 interface SessionInfo {
 	id: string
+	courseId: string
 	studentName: string
-	educationLevel?: string
-	gradeLevel: number
-	topic: string
 	status: string
 	startedAt: string
+}
+
+interface CourseInfo {
+	id: string
+	name: string
 }
 
 export default function SessionPage() {
 	const { id } = useParams<{ id: string }>()
 	const router = useRouter()
 	const [session, setSession] = useState<SessionInfo | null>(null)
+	const [course, setCourse] = useState<CourseInfo | null>(null)
 	const [messages, setMessages] = useState<SessionMsg[]>([])
-	const [currentProblem, setCurrentProblem] = useState<ProblemInfo | null>(null)
-	const [problemIndex, setProblemIndex] = useState(0)
-	const [totalProblems, setTotalProblems] = useState(0)
 	const [input, setInput] = useState("")
 	const [sending, setSending] = useState(false)
 	const [elapsed, setElapsed] = useState(0)
 	const [loadError, setLoadError] = useState("")
-	const [solvedBanner, setSolvedBanner] = useState<string | null>(null)
-	const [solvedCount, setSolvedCount] = useState(0)
 	const chatEndRef = useRef<HTMLDivElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
 
@@ -58,10 +49,8 @@ export default function SessionPage() {
 				return
 			}
 			setSession(data.session)
+			setCourse(data.course)
 			setMessages(data.messages || [])
-			setCurrentProblem(data.currentProblem)
-			setProblemIndex(data.problemIndex)
-			setTotalProblems(data.totalProblems)
 		} catch {
 			setLoadError("Could not load session.")
 		}
@@ -87,12 +76,6 @@ export default function SessionPage() {
 	useEffect(() => {
 		if (!sending) inputRef.current?.focus()
 	}, [sending])
-
-	function showSolvedBanner(question: string) {
-		setSolvedBanner(question)
-		setSolvedCount((c) => c + 1)
-		setTimeout(() => setSolvedBanner(null), 4000)
-	}
 
 	async function sendMessage() {
 		if (!input.trim() || sending) return
@@ -122,21 +105,6 @@ export default function SessionPage() {
 			}
 
 			setMessages(data.messages)
-
-			if (data.problemSolved && data.nextProblem) {
-				showSolvedBanner(currentProblem?.question || "Problem")
-				setTimeout(() => {
-					setCurrentProblem(data.nextProblem)
-					setProblemIndex(data.problemIndex)
-					setTotalProblems(data.totalProblems)
-				}, 1500)
-			} else {
-				if (data.nextProblem) {
-					setCurrentProblem(data.nextProblem)
-				}
-				setProblemIndex(data.problemIndex)
-				setTotalProblems(data.totalProblems)
-			}
 		} catch {
 			setMessages((prev) => [
 				...prev,
@@ -148,7 +116,11 @@ export default function SessionPage() {
 
 	async function endSession() {
 		await fetch(`${API}/sessions/${id}/complete`, { method: "POST" })
-		router.push(`/handoff/${id}`)
+		if (course) {
+			router.push(`/course/${course.id}`)
+		} else {
+			router.push("/")
+		}
 	}
 
 	function formatTime(s: number) {
@@ -162,8 +134,8 @@ export default function SessionPage() {
 			<main className="min-h-dvh bg-[#0a0a0a] flex items-center justify-center">
 				<div className="text-center">
 					<p className="font-sans text-[#888] mb-4">{loadError}</p>
-					<button type="button" onClick={() => router.push("/demo")} className="font-sans text-sm text-[#4f9cf7] hover:underline">
-						Start a new session
+					<button type="button" onClick={() => router.push("/")} className="font-sans text-sm text-[#4f9cf7] hover:underline">
+						Go home
 					</button>
 				</div>
 			</main>
@@ -178,44 +150,24 @@ export default function SessionPage() {
 		)
 	}
 
-	const remainingMinutes = Math.max(0, 25 * 60 - elapsed)
-	const isTimeWarning = remainingMinutes < 5 * 60
-
 	return (
-		<main className="h-dvh bg-[#0a0a0a] flex flex-col relative">
-			{/* Solved banner */}
-			{solvedBanner && (
-				<div className="absolute top-0 left-0 right-0 z-50 animate-slide-down">
-					<div className="bg-green-500/15 border-b border-green-500/30 px-4 py-3">
-						<div className="max-w-[720px] mx-auto flex items-center gap-3">
-							<div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
-								<svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-green-400">
-									<path d="M3.75 9L7.5 12.75L14.25 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-								</svg>
-							</div>
-							<div className="flex-1 min-w-0">
-								<div className="font-sans text-sm font-semibold text-green-400">
-									Problem solved!
-								</div>
-								<div className="font-sans text-xs text-green-400/60 truncate">
-									{solvedCount} of {totalProblems} completed — moving to next problem
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-
+		<main className="h-dvh bg-[#0a0a0a] flex flex-col">
 			{/* Header */}
 			<header className="shrink-0 border-b border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					<span className="font-sans text-xs font-semibold text-[#4f9cf7] tracking-[0.06em] uppercase">Magister</span>
 					<span className="w-px h-4 bg-[#2a2a2a]" />
+					{course && (
+						<>
+							<span className="font-sans text-sm text-[#888]">{course.name}</span>
+							<span className="w-px h-4 bg-[#2a2a2a]" />
+						</>
+					)}
 					<span className="font-sans text-sm text-[#888]">{session.studentName}</span>
 				</div>
 				<div className="flex items-center gap-4">
-					<span className={`font-mono text-sm tabular-nums ${isTimeWarning ? "text-red-400" : "text-[#888]"}`}>
-						{formatTime(remainingMinutes)}
+					<span className="font-mono text-sm tabular-nums text-[#888]">
+						{formatTime(elapsed)}
 					</span>
 					<button
 						type="button"
@@ -226,40 +178,6 @@ export default function SessionPage() {
 					</button>
 				</div>
 			</header>
-
-			{/* Problem bar */}
-			{currentProblem && (
-				<div className="shrink-0 border-b border-[#2a2a2a] px-4 py-3 bg-[#0d0d0d]">
-					<div className="max-w-[720px] mx-auto flex items-start justify-between gap-4">
-						<div className="flex-1 min-w-0">
-							<div className="flex items-center gap-2 mb-1">
-								<span className="font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.06em]">
-									Problem {problemIndex + 1} of {totalProblems}
-								</span>
-								<span className={`font-sans text-[10px] px-1.5 py-0.5 rounded-full ${
-									currentProblem.difficulty === "foundational" ? "bg-green-500/15 text-green-400" :
-									currentProblem.difficulty === "on-grade" ? "bg-blue-500/15 text-blue-400" :
-									"bg-amber-500/15 text-amber-400"
-								}`}>
-									{currentProblem.difficulty}
-								</span>
-							</div>
-							<RenderMath text={currentProblem.question} className="font-serif text-lg text-white" />
-						</div>
-						{/* Progress dots */}
-						<div className="flex gap-1 pt-1">
-							{Array.from({ length: totalProblems }).map((_, i) => (
-								<div
-									key={`dot-${i}`}
-									className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-										i < problemIndex ? "bg-green-500" : i === problemIndex ? "bg-[#4f9cf7]" : "bg-[#2a2a2a]"
-									}`}
-								/>
-							))}
-						</div>
-					</div>
-				</div>
-			)}
 
 			{/* Chat area */}
 			<div className="flex-1 overflow-y-auto px-4 py-6">
@@ -294,8 +212,8 @@ export default function SessionPage() {
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-						placeholder="Type your answer or ask for help..."
-						disabled={sending}
+						placeholder="Ask a question or share your answer..."
+						disabled={sending || session.status !== "active"}
 						className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#4f9cf7] transition-colors disabled:opacity-50"
 					/>
 					<button
@@ -308,16 +226,6 @@ export default function SessionPage() {
 					</button>
 				</div>
 			</div>
-
-			<style jsx>{`
-				@keyframes slide-down {
-					from { transform: translateY(-100%); opacity: 0; }
-					to { transform: translateY(0); opacity: 1; }
-				}
-				.animate-slide-down {
-					animation: slide-down 0.3s ease-out, slide-down 0.3s ease-in 3.5s reverse forwards;
-				}
-			`}</style>
 		</main>
 	)
 }

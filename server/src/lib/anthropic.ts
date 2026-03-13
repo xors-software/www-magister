@@ -1,160 +1,99 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Problem } from "./problems";
-import type {
-	DiagnosticSnapshot,
-	HandoffArtifact,
-	KnowledgeGap,
-	Message,
-	Misconception,
-	Session,
-} from "./sessions";
+import type { CourseMaterial } from "./courses";
+import type { DiagnosticSnapshot, Message, Session } from "./sessions";
 
 const client = new Anthropic({
 	apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-function buildSystemPrompt(educationLevel: "k12" | "university"): string {
-	const isUniversity = educationLevel === "university";
-	const audienceDescription = isUniversity
-		? "university students and adult learners working through college-level coursework"
-		: "K-12 students in grades 6-12";
-	const languageNote = isUniversity
-		? "Use precise academic language appropriate for college students. You can use technical terminology freely — define it only when the student seems unfamiliar."
-		: "Use simple, clear language appropriate for the student's grade level. Never use jargon without explaining it.";
+function buildSystemPrompt(courseName: string, materials: CourseMaterial[]): string {
+	const materialsBlock = materials
+		.map((m) => `### ${m.title}\n${m.content}`)
+		.join("\n\n---\n\n");
 
-	return `You are Magister, a Socratic tutor for ${audienceDescription}. You work in 25-minute blocks, guiding students to genuine understanding through questioning, reasoning, and targeted instruction.
+	return `You are Magister, an AI tutor for the course "${courseName}". You help students understand the course materials through clear explanation and Socratic questioning.
+
+COURSE MATERIALS:
+${materialsBlock}
+
+TOPIC RESTRICTION:
+- You may ONLY discuss topics covered in the course materials above.
+- If a student asks about something unrelated, respond warmly: "That's an interesting question, but it's outside what we're covering in this course. Let's stay focused on [relevant topic]. What would you like to explore next?"
+- You may use general knowledge to enrich explanations of course topics, but never drift into unrelated subjects.
 
 CORE PRINCIPLES:
-1. ASK FOR THE ANSWER FIRST. When presenting a problem, clearly ask the student to try solving it. Say something like "What answer do you get?" or "Give it a try — what's your solution?" Do NOT ask about process on the very first message. The student needs to attempt the problem first.
-2. Guide through questions — but know when to teach. If questioning alone isn't working after 2-3 rounds, shift to brief, clear instruction then check understanding with a follow-up question.
-3. When a student makes an error, ask "What was your thinking here?" before correcting.
-4. Identify the SPECIFIC misconception or gap — not just that they're wrong.
-5. Provide scaffolded hints: first conceptual, then procedural, then specific. Never skip levels.
-6. Track what the student understands AND what they don't.
-7. Be warm, encouraging, and patient.
+1. Guide through questions — but know when to teach. If questioning alone isn't working after 2-3 rounds, shift to brief, clear instruction then check understanding with a follow-up question.
+2. When a student makes an error, ask "What was your thinking here?" before correcting.
+3. Identify the SPECIFIC misconception or gap — not just that they're wrong.
+4. Provide scaffolded hints: first conceptual, then procedural, then specific. Never skip levels.
+5. Track what the student understands AND what they don't.
+6. Be warm, encouraging, and patient.
 
 CRITICAL — AVOID CIRCULAR QUESTIONING:
 If you've asked 2-3 guiding questions and the student is still stuck or repeating the same error:
 - STOP asking more guiding questions.
-- TEACH the concept directly: explain the method clearly in 2-4 sentences.
-- Then give the student a chance to apply what you just taught: "Now try using that approach — what do you get?"
-The goal is learning, not endless questioning. A student who is stuck needs instruction, not more questions about what they don't know.
+- TEACH the concept directly: explain clearly in 2-4 sentences.
+- Then give the student a chance to apply what you just taught.
+The goal is learning, not endless questioning.
 
-ANSWER VERIFICATION:
-When a student gives an answer:
-- If CORRECT: Explicitly say "That's correct!" or "Exactly right!" — make it unmistakable. Then briefly explain WHY the approach worked. The student must have clear visual confirmation they got it right.
-- If INCORRECT: Don't just move on. Say something like "Not quite — let's work through this." Then guide them or teach as appropriate.
-- NEVER silently move to the next problem. Always provide explicit feedback on the current answer first.
-
-DIAGNOSTIC APPROACH:
-- When presenting a new problem, ask the student to try solving it. Get their answer first.
-- When they make errors, trace back to the ROOT CAUSE through questioning — but switch to teaching if they're going in circles.
-- Distinguish between careless arithmetic errors and conceptual misunderstandings.
-- Note prerequisite gaps.
+SESSION MEMORY:
+You have access to the full conversation history. Use it to:
+- Remember what the student already understands — don't re-explain mastered concepts.
+- Track which topics/sections have been covered and which haven't.
+- Build on previous explanations and questions — create a coherent learning arc.
+- Reference earlier parts of the conversation: "Earlier you mentioned... let's connect that to..."
 
 COMMUNICATION STYLE:
-- ${languageNote}
 - Keep responses focused — 2-4 sentences of content, then a question or prompt. Don't lecture for paragraphs.
 - Celebrate effort and progress, not just correctness.
 - Use the student's name occasionally.
-${isUniversity ? `- Engage with the material at a deeper level: ask about implications, edge cases, why a formula works, and when it breaks down.
-- Use real-world applications and counterexamples to deepen understanding.
-- Encourage the student to think about connections between concepts.` : ""}
+- Reference specific parts of the course materials when explaining.
 
 SCAFFOLDING PROTOCOL:
 If the student is stuck, follow this escalation:
-1. First: Ask what they know about the relevant concept.
-2. Second: Give a conceptual hint ("Think about what operation undoes addition...")
-3. Third: Give a procedural hint ("Try subtracting 7 from both sides.")
-4. Fourth: If they're still stuck after steps 1-3, TEACH it directly. Walk through the first step clearly, explain the reasoning, then let them continue.
-Never repeat the same level of hint. If a hint didn't work, escalate.
-
-IMPORTANT:
-- You have the correct answer and solution steps. Use them to GUIDE, and when the student is stuck, to TEACH.
-- When the student arrives at the correct answer, confirm it enthusiastically and explain why the approach worked.
-- If the student is clearly guessing randomly, gently redirect to the underlying concept — or teach it directly.
-- After confirming a correct answer, indicate you're ready for the next problem.
+1. Ask what they know about the relevant concept.
+2. Give a conceptual hint.
+3. Give a more specific hint referencing the materials.
+4. If still stuck, TEACH it directly — walk through the concept clearly, then let them try.
 
 VISUAL EXPLANATIONS:
-When a concept would benefit from a visual, include an SVG diagram in your response wrapped in <diagram> tags. Use these for:
-- Geometry/physics: shapes, force diagrams, circuits, graphs
-- Number lines, fraction models, coordinate planes
-- Equation balance: visual balance beam for both sides
-- Any spatial or graphical concept that's hard to convey in text
-
+When a concept would benefit from a visual, include an SVG diagram wrapped in <diagram> tags.
 SVG rules:
 - Use a viewBox of "0 0 400 250" (or taller if needed)
-- Use these colors: #4f9cf7 (blue accent), #22c55e (green/correct), #ef4444 (red/error), #e8e8e8 (text), #2a2a2a (lines), #141414 (fill)
-- Set font-family to sans-serif, font fills to #e8e8e8
-- Keep diagrams simple and clear — no decoration, just the concept
-- Only include a diagram when it genuinely aids understanding
-
-Example:
-<diagram>
-<svg viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg">
-  <polygon points="50,200 350,200 350,50" fill="none" stroke="#4f9cf7" stroke-width="2"/>
-  <text x="200" y="220" fill="#e8e8e8" font-family="sans-serif" font-size="14" text-anchor="middle">8</text>
-  <text x="365" y="130" fill="#e8e8e8" font-family="sans-serif" font-size="14">6</text>
-  <text x="190" y="115" fill="#22c55e" font-family="sans-serif" font-size="14" text-anchor="middle">c = ?</text>
-</svg>
-</diagram>
+- Colors: #4f9cf7 (blue accent), #22c55e (green), #ef4444 (red), #e8e8e8 (text), #2a2a2a (lines), #141414 (fill)
+- font-family: sans-serif, font fills: #e8e8e8
+- Keep diagrams simple and clear
 
 MATH NOTATION:
-When writing math expressions in your conversational text, wrap them in $$ delimiters for display math or $ for inline math so the frontend can render them with KaTeX.
-Examples: $3x + 7 = 22$ or $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+Wrap math in $$ for display math or $ for inline math (KaTeX).
 
 RESPONSE FORMAT:
-After your conversational message (and any diagrams), ALWAYS include a diagnostic block on a new line in exactly this format:
+After your conversational message (and any diagrams), ALWAYS include a diagnostic block:
 
 <diagnostic>
-{"understanding":["concepts demonstrated"],"gaps":["gaps identified"],"misconceptions":["misconceptions observed"],"confidence":50,"engagement":"medium","nextAction":"what to do next","problemSolved":false}
+{"understanding":["concepts demonstrated"],"gaps":["gaps identified"],"misconceptions":["misconceptions observed"],"confidence":50,"engagement":"medium","nextAction":"what to do next"}
 </diagnostic>
 
-Set "problemSolved" to true ONLY when the student has clearly arrived at and stated the correct answer. The confidence score (0-100) reflects how well the student seems to understand the current concept.`;
+The confidence score (0-100) reflects how well the student understands the current concept.`;
 }
 
 function buildConversationMessages(
 	session: Session,
-	currentProblem: Problem,
 	messages: Message[],
 ): Anthropic.MessageParam[] {
 	const result: Anthropic.MessageParam[] = [];
 
-	const levelContext = session.educationLevel === "university"
-		? `Education Level: University/College`
-		: `Grade: ${session.gradeLevel}`;
+	if (messages.length === 0) {
+		result.push({
+			role: "user",
+			content: `[SYSTEM CONTEXT — not visible to student]
+Student: ${session.studentName}
+This is the START of a new tutoring session. Warmly greet the student by name, briefly introduce what the course covers (based on the materials), and ask what topic or concept they'd like to work on first. Keep it encouraging and brief.`,
+		});
+		return result;
+	}
 
-	result.push({
-		role: "user",
-		content: `[SYSTEM CONTEXT — not visible to student]
-Student: ${session.studentName}, ${levelContext}
-Topic: ${currentProblem.topic} / ${currentProblem.subtopic}
-Difficulty: ${currentProblem.difficulty}
-
-Current Problem: ${currentProblem.question}
-Correct Answer: ${currentProblem.correctAnswer}
-Solution Steps: ${currentProblem.solutionSteps.join(" → ")}
-Common Misconceptions to Watch For: ${currentProblem.commonMisconceptions.join("; ")}
-Prerequisites: ${currentProblem.prerequisites.join(", ")}
-
-${session.knowledgeGaps.length > 0 ? `Known gaps from earlier in session: ${session.knowledgeGaps.map((g) => g.concept).join(", ")}` : ""}
-${session.misconceptions.length > 0 ? `Known misconceptions: ${session.misconceptions.map((m) => m.description).join(", ")}` : ""}
-
-Present this problem to the student. Ask them to try solving it and give you their answer. Do NOT show the answer or solution steps. Do NOT ask about their process first — ask for their answer.`,
-	});
-
-	result.push({
-		role: "assistant",
-		content:
-			messages.length > 0
-				? messages[0].role === "tutor"
-					? messages[0].content
-					: `Here's your next problem, ${session.studentName}:\n\n**${currentProblem.question}**\n\nGive it a try — what answer do you get?`
-				: `Here's your next problem, ${session.studentName}:\n\n**${currentProblem.question}**\n\nGive it a try — what answer do you get?`,
-	});
-
-	for (let i = messages[0]?.role === "tutor" ? 1 : 0; i < messages.length; i++) {
-		const msg = messages[i];
+	for (const msg of messages) {
 		result.push({
 			role: msg.role === "student" ? "user" : "assistant",
 			content: msg.content,
@@ -193,87 +132,29 @@ function extractDiagrams(text: string): string[] {
 	return diagrams;
 }
 
-function stripDiagnosticFromResponse(text: string): string {
+function stripMetaFromResponse(text: string): string {
 	return text
 		.replace(/<diagnostic>[\s\S]*?<\/diagnostic>/g, "")
 		.replace(/<diagram>[\s\S]*?<\/diagram>/g, "")
 		.trim();
 }
 
-function isProblemSolved(text: string): boolean {
-	const match = text.match(/<diagnostic>\s*([\s\S]*?)\s*<\/diagnostic>/);
-	if (!match) return false;
-	try {
-		const data = JSON.parse(match[1]);
-		return data.problemSolved === true;
-	} catch {
-		return false;
-	}
-}
-
 export async function getTutorResponse(
 	session: Session,
-	currentProblem: Problem,
+	courseName: string,
+	materials: CourseMaterial[],
 	conversationMessages: Message[],
 ): Promise<{
 	content: string;
 	diagrams: string[];
 	diagnostic?: DiagnosticSnapshot;
-	problemSolved: boolean;
 }> {
-	const messages = buildConversationMessages(
-		session,
-		currentProblem,
-		conversationMessages,
-	);
+	const messages = buildConversationMessages(session, conversationMessages);
 
 	const response = await client.messages.create({
 		model: "claude-sonnet-4-20250514",
 		max_tokens: 1200,
-		system: buildSystemPrompt(session.educationLevel),
-		messages,
-	});
-
-	const rawContent =
-		response.content[0].type === "text" ? response.content[0].text : "";
-	const diagnostic = parseDiagnostic(rawContent);
-	const solved = isProblemSolved(rawContent);
-	const diagrams = extractDiagrams(rawContent);
-	const content = stripDiagnosticFromResponse(rawContent);
-
-	return { content, diagrams, diagnostic, problemSolved: solved };
-}
-
-export async function getIntroMessage(
-	session: Session,
-	problem: Problem,
-): Promise<{ content: string; diagrams: string[]; diagnostic?: DiagnosticSnapshot }> {
-	const levelContext = session.educationLevel === "university"
-		? `Education Level: University/College`
-		: `Grade: ${session.gradeLevel}`;
-
-	const messages: Anthropic.MessageParam[] = [
-		{
-			role: "user",
-			content: `[SYSTEM CONTEXT — not visible to student]
-Student: ${session.studentName}, ${levelContext}
-Topic: ${problem.topic} / ${problem.subtopic}
-Difficulty: ${problem.difficulty}
-
-Current Problem: ${problem.question}
-Correct Answer: ${problem.correctAnswer}
-Solution Steps: ${problem.solutionSteps.join(" → ")}
-Common Misconceptions to Watch For: ${problem.commonMisconceptions.join("; ")}
-Prerequisites: ${problem.prerequisites.join(", ")}
-
-This is the START of a new tutoring session. Warmly greet the student by name, present the problem, and ask them to try solving it. Say something like "Give it a try — what do you get?" Do NOT ask about their process first. Do NOT reveal the answer. Keep it brief and encouraging.`,
-		},
-	];
-
-	const response = await client.messages.create({
-		model: "claude-sonnet-4-20250514",
-		max_tokens: 400,
-		system: buildSystemPrompt(session.educationLevel),
+		system: buildSystemPrompt(courseName, materials),
 		messages,
 	});
 
@@ -281,131 +162,30 @@ This is the START of a new tutoring session. Warmly greet the student by name, p
 		response.content[0].type === "text" ? response.content[0].text : "";
 	const diagnostic = parseDiagnostic(rawContent);
 	const diagrams = extractDiagrams(rawContent);
-	const content = stripDiagnosticFromResponse(rawContent);
+	const content = stripMetaFromResponse(rawContent);
 
 	return { content, diagrams, diagnostic };
 }
 
-export async function generateHandoff(
+export async function getIntroMessage(
 	session: Session,
-): Promise<HandoffArtifact> {
-	const transcript = session.attempts
-		.map((attempt, i) => {
-			const msgs = attempt.messages
-				.map(
-					(m) =>
-						`${m.role === "student" ? session.studentName : "Tutor"}: ${m.content}`,
-				)
-				.join("\n");
-			return `--- Problem ${i + 1}: ${attempt.problem.question} (${attempt.status}) ---\n${msgs}`;
-		})
-		.join("\n\n");
-
-	const gapsJson = JSON.stringify(session.knowledgeGaps);
-	const misconceptionsJson = JSON.stringify(session.misconceptions);
-
-	const allDiagnostics = session.attempts.flatMap((a) => a.diagnostics);
-	const latestDiagnostics = allDiagnostics.slice(-5);
+	courseName: string,
+	materials: CourseMaterial[],
+): Promise<{ content: string; diagrams: string[]; diagnostic?: DiagnosticSnapshot }> {
+	const messages = buildConversationMessages(session, []);
 
 	const response = await client.messages.create({
 		model: "claude-sonnet-4-20250514",
-		max_tokens: 1500,
-		system: `You are generating a handoff artifact for a human tutor. This document must be concise, actionable, and specific. The human tutor will use this to make their 25-minute session as productive as possible.
-
-Write in a professional but warm tone. Be specific — cite exact moments from the transcript as evidence. Prioritize ruthlessly — the tutor only has 25 minutes.
-
-Respond in this exact JSON format (no markdown, no wrapping):
-{
-  "summary": "2-3 sentence overview of the session",
-  "priorities": ["Top priority for the tutor", "Second priority", "Third priority"],
-  "suggestedApproach": "Specific suggestion for how the tutor should open their session",
-  "strengthsObserved": ["Strengths the student showed"],
-  "knowledgeGaps": [{"concept": "...", "severity": "critical|moderate|minor", "evidence": "specific quote or moment"}],
-  "misconceptions": [{"description": "...", "evidence": "specific quote or moment"}]
-}`,
-		messages: [
-			{
-				role: "user",
-				content: `Generate a tutor handoff artifact for this AI tutoring session.
-
-Student: ${session.studentName}, ${session.educationLevel === "university" ? "University/College" : `Grade ${session.gradeLevel}`}
-Topic: ${session.topic}
-Session duration: ${getSessionDuration(session)}
-Problems attempted: ${session.attempts.length}
-
-Transcript:
-${transcript}
-
-Gaps identified during session: ${gapsJson}
-Misconceptions identified: ${misconceptionsJson}
-Recent diagnostic snapshots: ${JSON.stringify(latestDiagnostics)}`,
-			},
-		],
+		max_tokens: 400,
+		system: buildSystemPrompt(courseName, materials),
+		messages,
 	});
 
 	const rawContent =
 		response.content[0].type === "text" ? response.content[0].text : "";
+	const diagnostic = parseDiagnostic(rawContent);
+	const diagrams = extractDiagrams(rawContent);
+	const content = stripMetaFromResponse(rawContent);
 
-	try {
-		const data = JSON.parse(rawContent);
-		return {
-			sessionId: session.id,
-			studentName: session.studentName,
-			gradeLevel: session.gradeLevel,
-			topic: session.topic,
-			sessionDuration: getSessionDuration(session),
-			summary: data.summary || "",
-			problemsAttempted: session.attempts.map((a) => ({
-				question: a.problem.question,
-				status: a.status,
-				messageCount: a.messages.length,
-			})),
-			knowledgeGaps: (data.knowledgeGaps || []).map(
-				(g: { concept: string; severity: string; evidence: string }) => ({
-					concept: g.concept,
-					severity: g.severity as KnowledgeGap["severity"],
-					evidence: g.evidence,
-					identifiedAt: new Date().toISOString(),
-				}),
-			),
-			misconceptions: (data.misconceptions || []).map(
-				(m: { description: string; evidence: string }) => ({
-					description: m.description,
-					evidence: m.evidence,
-					identifiedAt: new Date().toISOString(),
-				}),
-			),
-			priorities: data.priorities || [],
-			suggestedApproach: data.suggestedApproach || "",
-			strengthsObserved: data.strengthsObserved || [],
-		};
-	} catch {
-		return {
-			sessionId: session.id,
-			studentName: session.studentName,
-			gradeLevel: session.gradeLevel,
-			topic: session.topic,
-			sessionDuration: getSessionDuration(session),
-			summary: rawContent,
-			problemsAttempted: session.attempts.map((a) => ({
-				question: a.problem.question,
-				status: a.status,
-				messageCount: a.messages.length,
-			})),
-			knowledgeGaps: session.knowledgeGaps,
-			misconceptions: session.misconceptions,
-			priorities: [],
-			suggestedApproach: "",
-			strengthsObserved: [],
-		};
-	}
-}
-
-function getSessionDuration(session: Session): string {
-	const start = new Date(session.startedAt).getTime();
-	const end = session.completedAt
-		? new Date(session.completedAt).getTime()
-		: Date.now();
-	const minutes = Math.round((end - start) / 60000);
-	return `${minutes} min`;
+	return { content, diagrams, diagnostic };
 }

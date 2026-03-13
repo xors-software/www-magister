@@ -1,5 +1,6 @@
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
+import { coursesRoutes } from "./routes/courses";
 import { healthRoutes } from "./routes/health";
 import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
@@ -23,14 +24,15 @@ const app = new Elysia()
 			documentation: {
 				info: {
 					title: "Magister API",
-					version: "1.0.0",
-					description: "Elysia-powered API for XORS projects",
+					version: "2.0.0",
+					description: "Course-based AI tutoring platform",
 				},
 			},
 		}),
 	)
 	.use(healthRoutes)
 	.use(usersRoutes)
+	.use(coursesRoutes)
 	.use(sessionsRoutes)
 	.listen(process.env.PORT || 3001);
 

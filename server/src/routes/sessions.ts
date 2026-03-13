@@ -1,136 +1,103 @@
 import { Elysia, t } from "elysia";
+import { getIntroMessage, getTutorResponse } from "../lib/anthropic";
+import { getCourseWithMaterials } from "../lib/courses";
 import {
-	generateHandoff,
-	getIntroMessage,
-	getTutorResponse,
-} from "../lib/anthropic";
-import {
-	getAllTopics,
-	getNextProblem,
-	getProblemsForTopic,
-} from "../lib/problems";
-import type { EducationLevel, Topic } from "../lib/problems";
-import {
-	addKnowledgeGap,
 	addMessage,
-	addMisconception,
+	completeSession,
 	createSession,
 	getAllSessions,
+	getMessages,
 	getSession,
-	startProblemAttempt,
-	updateSession,
 } from "../lib/sessions";
-
-function briefProblem(p: {
-	id: string;
-	question: string;
-	topic: string;
-	subtopic: string;
-	difficulty: string;
-}) {
-	return {
-		id: p.id,
-		question: p.question,
-		topic: p.topic,
-		subtopic: p.subtopic,
-		difficulty: p.difficulty,
-	};
-}
 
 function viewMsg(m: {
 	role: string;
 	content: string;
-	diagrams?: string[];
-	timestamp: string;
+	diagrams: string[];
+	createdAt: string;
 }) {
 	return {
 		role: m.role,
 		content: m.content,
-		diagrams: m.diagrams || [],
-		timestamp: m.timestamp,
+		diagrams: m.diagrams,
+		timestamp: m.createdAt,
 	};
 }
 
 export const sessionsRoutes = new Elysia({ prefix: "/sessions" })
-	.get("/topics", ({ query }) => {
-		const level = query?.level as EducationLevel | undefined;
-		return getAllTopics(level);
-	})
 	.post(
 		"/",
-		async ({ body }) => {
-			const educationLevel = (body.educationLevel || "k12") as EducationLevel;
-			const session = createSession(
-				body.studentName,
-				educationLevel,
-				body.gradeLevel,
-				body.topic as Topic,
+		async ({ body, set }) => {
+			const courseData = getCourseWithMaterials(body.courseId);
+			if (!courseData) {
+				set.status = 404;
+				return { error: "Course not found" };
+			}
+
+			const session = createSession(body.courseId, body.studentName);
+			const intro = await getIntroMessage(
+				session,
+				courseData.course.name,
+				courseData.materials,
 			);
-			const problems = getProblemsForTopic(body.topic as Topic);
-			if (!problems.length) return { error: "No problems available" };
 
-			const first = problems[0];
-			startProblemAttempt(session.id, first);
-			const intro = await getIntroMessage(session, first);
-			addMessage(session.id, {
-				role: "tutor",
-				content: intro.content,
-				diagrams: intro.diagrams,
-				timestamp: new Date().toISOString(),
-				diagnostic: intro.diagnostic,
-			});
+			addMessage(
+				session.id,
+				"tutor",
+				intro.content,
+				intro.diagrams,
+				intro.diagnostic ?? null,
+			);
 
-			const s = getSession(session.id)!;
+			const messages = getMessages(session.id);
+
 			return {
 				session: {
-					id: s.id,
-					studentName: s.studentName,
-					educationLevel: s.educationLevel,
-					gradeLevel: s.gradeLevel,
-					topic: s.topic,
-					status: s.status,
-					startedAt: s.startedAt,
+					id: session.id,
+					courseId: session.courseId,
+					studentName: session.studentName,
+					status: session.status,
+					startedAt: session.startedAt,
 				},
-				currentProblem: briefProblem(first),
-				messages: (s.attempts[0]?.messages || []).map(viewMsg),
-				problemIndex: 0,
-				totalProblems: problems.length,
+				course: {
+					id: courseData.course.id,
+					name: courseData.course.name,
+				},
+				messages: messages.map(viewMsg),
 			};
 		},
 		{
 			body: t.Object({
+				courseId: t.String({ minLength: 1 }),
 				studentName: t.String({ minLength: 1 }),
-				educationLevel: t.Optional(t.String()),
-				gradeLevel: t.Number({ minimum: 5, maximum: 16 }),
-				topic: t.String(),
 			}),
 		},
 	)
 	.get(
 		"/:id",
 		({ params: { id }, set }) => {
-			const s = getSession(id);
-			if (!s) {
+			const session = getSession(id);
+			if (!session) {
 				set.status = 404;
-				return { error: "Not found" };
+				return { error: "Session not found" };
 			}
-			const a = s.attempts[s.currentProblemIndex];
+
+			const courseData = getCourseWithMaterials(session.courseId);
+			const messages = getMessages(id);
+
 			return {
 				session: {
-					id: s.id,
-					studentName: s.studentName,
-					educationLevel: s.educationLevel,
-					gradeLevel: s.gradeLevel,
-					topic: s.topic,
-					status: s.status,
-					startedAt: s.startedAt,
-					completedAt: s.completedAt,
+					id: session.id,
+					courseId: session.courseId,
+					studentName: session.studentName,
+					status: session.status,
+					startedAt: session.startedAt,
+					completedAt: session.completedAt,
 				},
-				currentProblem: a ? briefProblem(a.problem) : null,
-				messages: (a?.messages || []).map(viewMsg),
-				problemIndex: s.currentProblemIndex,
-				totalProblems: getProblemsForTopic(s.topic).length,
-				knowledgeGaps: s.knowledgeGaps,
+				course: courseData
+					? { id: courseData.course.id, name: courseData.course.name }
+					: null,
+				messages: messages.map(viewMsg),
 			};
 		},
 		{ params: t.Object({ id: t.String() }) },
@@ -138,99 +105,51 @@ export const sessionsRoutes = new Elysia({ prefix: "/sessions" })
 	.post(
 		"/:id/message",
 		async ({ params: { id }, body, set }) => {
-			const s = getSession(id);
-			if (!s) {
+			const session = getSession(id);
+			if (!session) {
 				set.status = 404;
-				return { error: "Not found" };
+				return { error: "Session not found" };
 			}
-			if (s.status !== "active") {
+			if (session.status !== "active") {
 				set.status = 400;
-				return { error: "Not active" };
-			}
-			const a = s.attempts[s.currentProblemIndex];
-			if (!a) {
-				set.status = 400;
-				return { error: "No problem" };
+				return { error: "Session is not active" };
 			}
 
-			addMessage(id, {
-				role: "student",
-				content: body.content,
-				timestamp: new Date().toISOString(),
-			});
-
-			const u = getSession(id)!;
-			const msgs = u.attempts[u.currentProblemIndex].messages;
-			const r = await getTutorResponse(u, a.problem, msgs);
-
-			if (r.diagnostic) {
-				for (const g of r.diagnostic.gaps) {
-					const sev =
-						r.diagnostic.confidence < 30
-							? "critical"
-							: r.diagnostic.confidence < 60
-								? "moderate"
-								: "minor";
-					addKnowledgeGap(id, {
-						concept: g,
-						severity: sev as "critical" | "moderate" | "minor",
-						evidence: body.content,
-						identifiedAt: new Date().toISOString(),
-					});
-				}
-				for (const mc of r.diagnostic.misconceptions) {
-					addMisconception(id, {
-						description: mc,
-						evidence: body.content,
-						identifiedAt: new Date().toISOString(),
-					});
-				}
-			}
-			addMessage(id, {
-				role: "tutor",
-				content: r.content,
-				diagrams: r.diagrams,
-				timestamp: new Date().toISOString(),
-				diagnostic: r.diagnostic,
-			});
-
-			let np = null;
-			let ni = null;
-			if (r.problemSolved) {
-				a.status = "solved";
-				a.completedAt = new Date().toISOString();
-				const done = u.attempts.map((x) => x.problem.id);
-				const next = getNextProblem(s.topic, done);
-				if (next) {
-					startProblemAttempt(id, next);
-					const intro = await getIntroMessage(getSession(id)!, next);
-					addMessage(id, {
-						role: "tutor",
-						content: intro.content,
-						diagrams: intro.diagrams,
-						timestamp: new Date().toISOString(),
-						diagnostic: intro.diagnostic,
-					});
-					np = briefProblem(next);
-					ni = intro.content;
-				}
+			const courseData = getCourseWithMaterials(session.courseId);
+			if (!courseData) {
+				set.status = 500;
+				return { error: "Course data unavailable" };
 			}
 
-			const f = getSession(id)!;
-			const fa = f.attempts[f.currentProblemIndex];
+			addMessage(id, "student", body.content);
+
+			const allMessages = getMessages(id);
+
+			const response = await getTutorResponse(
+				session,
+				courseData.course.name,
+				courseData.materials,
+				allMessages,
+			);
+
+			addMessage(
+				id,
+				"tutor",
+				response.content,
+				response.diagrams,
+				response.diagnostic ?? null,
+			);
+
+			const updatedMessages = getMessages(id);
+
 			return {
 				tutorMessage: {
 					role: "tutor" as const,
-					content: r.content,
-					diagrams: r.diagrams,
+					content: response.content,
+					diagrams: response.diagrams,
 					timestamp: new Date().toISOString(),
 				},
-				problemSolved: r.problemSolved,
-				nextProblem: np,
-				nextProblemIntro: ni,
-				messages: fa.messages.map(viewMsg),
-				problemIndex: f.currentProblemIndex,
-				totalProblems: getProblemsForTopic(s.topic).length,
+				messages: updatedMessages.map(viewMsg),
 			};
 		},
 		{
@@ -241,50 +160,26 @@ export const sessionsRoutes = new Elysia({ prefix: "/sessions" })
 	.post(
 		"/:id/complete",
 		({ params: { id }, set }) => {
-			const s = getSession(id);
-			if (!s) {
+			const session = completeSession(id);
+			if (!session) {
 				set.status = 404;
-				return { error: "Not found" };
+				return { error: "Session not found" };
 			}
-			const a = s.attempts[s.currentProblemIndex];
-			if (a && a.status === "in-progress") {
-				a.status = "moved-on";
-				a.completedAt = new Date().toISOString();
-			}
-			updateSession(id, {
-				status: "completed",
-				completedAt: new Date().toISOString(),
-			});
 			return { status: "completed", sessionId: id };
 		},
 		{ params: t.Object({ id: t.String() }) },
 	)
-	.get(
-		"/:id/handoff",
-		async ({ params: { id }, set }) => {
-			const s = getSession(id);
-			if (!s) {
-				set.status = 404;
-				return { error: "Not found" };
-			}
-			if (s.status !== "completed") {
-				set.status = 400;
-				return { error: "Complete session first" };
-			}
-			return await generateHandoff(s);
-		},
-		{ params: t.Object({ id: t.String() }) },
-	)
 	.get("/", () =>
-		getAllSessions().map((s) => ({
-			id: s.id,
-			studentName: s.studentName,
-			gradeLevel: s.gradeLevel,
-			topic: s.topic,
-			status: s.status,
-			startedAt: s.startedAt,
-			completedAt: s.completedAt,
-			problemsAttempted: s.attempts.length,
-			gapsFound: s.knowledgeGaps.length,
-		})),
+		getAllSessions().map((s) => {
+			const courseData = getCourseWithMaterials(s.courseId);
+			return {
+				id: s.id,
+				courseId: s.courseId,
+				courseName: courseData?.course.name ?? "Unknown",
+				studentName: s.studentName,
+				status: s.status,
+				startedAt: s.startedAt,
+				completedAt: s.completedAt,
+			};
+		}),
 	);
