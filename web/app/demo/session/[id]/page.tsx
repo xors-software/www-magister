@@ -370,7 +370,7 @@ function renderMathInText(text: string): string {
 	let result = text
 
 	const currencySlots: string[] = []
-	result = result.replace(/\$(\d[\d,]*(?:\.\d+)?(?:[KkMmBb])?(?:\/\w+)?)/g, (match) => {
+	result = result.replace(/\$(\d[\d,]*(?:\.\d+)?(?:[KkMmBb])?(?:\/\w+)?)(?=\s|[.,;:!?)\]}-]|$)/g, (match) => {
 		currencySlots.push(match)
 		return `\x00CUR${currencySlots.length - 1}\x00`
 	})
