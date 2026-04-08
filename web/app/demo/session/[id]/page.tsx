@@ -151,6 +151,36 @@ export default function SessionPage() {
 		setSending(false)
 	}
 
+	async function sendHint() {
+		if (sending) return
+		const hintMsg = isOscp ? "hint — I'm stuck, what command should I try?" : "I'm stuck, can you give me a hint?"
+		setInput("")
+		setSending(true)
+
+		setMessages((prev) => [
+			...prev,
+			{ role: "student", content: hintMsg, timestamp: new Date().toISOString() },
+		])
+
+		try {
+			const res = await fetch(`${API}/demo-sessions/${id}/message`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ content: hintMsg }),
+			})
+			const data = await res.json()
+			if (!data.error) {
+				setMessages(data.messages)
+				if (data.nextProblem) {
+					setCurrentProblem(data.nextProblem)
+				}
+				setProblemIndex(data.problemIndex)
+				setTotalProblems(data.totalProblems)
+			}
+		} catch { /* ignore */ }
+		setSending(false)
+	}
+
 	async function endSession() {
 		await fetch(`${API}/demo-sessions/${id}/complete`, { method: "POST" })
 		router.push(`/demo/handoff/${id}`)
@@ -320,44 +350,69 @@ export default function SessionPage() {
 
 			{/* Input */}
 			<div className="shrink-0 border-t border-[#2a2a2a] px-4 py-3" style={isOscp ? { backgroundColor: "#080808" } : undefined}>
-				<div className="max-w-[720px] mx-auto flex gap-2">
-					{isOscp ? (
-						// Terminal-style input for OSCP
-						<div className="flex-1 flex items-center bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 focus-within:border-[#ef4444]/50 transition-colors">
-							<span className="font-mono text-sm text-[#ef4444] mr-2 shrink-0 select-none">$</span>
+				<div className="max-w-[720px] mx-auto">
+					<div className="flex gap-2">
+						{isOscp ? (
+							// Terminal-style input for OSCP
+							<div className="flex-1 flex items-center bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 focus-within:border-[#ef4444]/50 transition-colors">
+								<span className="font-mono text-sm text-[#ef4444] mr-2 shrink-0 select-none">$</span>
+								<input
+									ref={inputRef}
+									type="text"
+									value={input}
+									onChange={(e) => setInput(e.target.value)}
+									onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+									placeholder="type a command or ask for help..."
+									disabled={sending}
+									className="flex-1 bg-transparent text-[#22c55e] font-mono text-sm placeholder:text-[#333] focus:outline-none disabled:opacity-50"
+								/>
+							</div>
+						) : (
 							<input
 								ref={inputRef}
 								type="text"
 								value={input}
 								onChange={(e) => setInput(e.target.value)}
 								onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-								placeholder="type your answer or command..."
+								placeholder="Type your answer or ask for help..."
 								disabled={sending}
-								className="flex-1 bg-transparent text-[#22c55e] font-mono text-sm placeholder:text-[#333] focus:outline-none disabled:opacity-50"
+								className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none transition-colors disabled:opacity-50"
 							/>
-						</div>
-					) : (
-						<input
-							ref={inputRef}
-							type="text"
-							value={input}
-							onChange={(e) => setInput(e.target.value)}
-							onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-							placeholder="Type your answer or ask for help..."
+						)}
+						<button
+							type="button"
+							onClick={() => sendHint()}
 							disabled={sending}
-							className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none transition-colors disabled:opacity-50"
-							style={{ borderColor: undefined }}
-						/>
+							className="px-3 py-3 rounded-xl font-sans text-xs font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#555]"
+							style={{ color: accentColor }}
+							title="Ask for a hint"
+						>
+							Hint
+						</button>
+						<button
+							type="button"
+							onClick={sendMessage}
+							disabled={sending || !input.trim()}
+							className="px-5 py-3 rounded-xl text-white font-sans text-sm font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+							style={{ backgroundColor: accentColor }}
+						>
+							{isOscp ? "Run" : "Send"}
+						</button>
+					</div>
+					{isOscp && (
+						<div className="flex gap-2 mt-2">
+							{["nmap -sV", "gobuster dir", "searchsploit", "help"].map((cmd) => (
+								<button
+									key={cmd}
+									type="button"
+									onClick={() => setInput(cmd)}
+									className="font-mono text-[11px] px-2 py-1 rounded bg-[#111] border border-[#1a1a1a] text-[#ef4444]/60 hover:text-[#ef4444] hover:border-[#ef4444]/30 transition-colors"
+								>
+									{cmd}
+								</button>
+							))}
+						</div>
 					)}
-					<button
-						type="button"
-						onClick={sendMessage}
-						disabled={sending || !input.trim()}
-						className="px-5 py-3 rounded-xl text-white font-sans text-sm font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-						style={{ backgroundColor: accentColor }}
-					>
-						{isOscp ? "Run" : "Send"}
-					</button>
 				</div>
 			</div>
 

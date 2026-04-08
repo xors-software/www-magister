@@ -5,15 +5,17 @@
 
 ## The Story
 
-Six months ago, Lori had zero cybersecurity certifications, zero industry knowledge, and zero confidence she belonged in the field.
+Six months ago, Lori was a masters student at Boston University who wanted to break into cybersecurity. She had zero certifications, zero industry knowledge, and zero confidence she could compete with people who'd been doing this for years.
 
-She was a career-changer — no CS degree, no SOC experience, no homelab. She'd tried the usual path: bought a $300 Udemy bundle, downloaded Anki flashcards, bookmarked a dozen YouTube playlists. She made it through two modules before the jargon wall hit. *What's the difference between a vulnerability and a threat? Why does everyone keep saying "CIA triad" like I should already know what that means?*
+She joined the BU cybersecurity club looking to get into the field and signed up for the NCAE Cyber Games — a national competition where university teams defend infrastructure, attack targets, and solve CTF challenges. Her team had experienced members. She had enthusiasm and a lot of catching up to do.
+
+She tried the usual path: bought a $300 Udemy bundle, downloaded Anki flashcards, bookmarked a dozen YouTube playlists. She made it through two modules before the jargon wall hit. *What's the difference between a vulnerability and a threat? Why does everyone keep saying "CIA triad" like I should already know what that means?*
 
 She almost quit.
 
-Then her team lead pointed her to Magister. Instead of a 40-hour video lecture, she got a conversation. The AI tutor didn't quiz her — it *taught* her. When she said "I don't know what an ACL is," it didn't mark her wrong. It said: *"Think of it like a guest list at a club — it defines who gets in and what they can do once inside. Now, who should be on the guest list for a database that stores medical records?"*
+Then she found Magister. Instead of a 40-hour video lecture, she got a conversation. The AI tutor didn't quiz her — it *taught* her. When she said "I don't know what an ACL is," it didn't mark her wrong. It said: *"Think of it like a guest list at a club — it defines who gets in and what they can do once inside. Now, who should be on the guest list for a database that stores medical records?"*
 
-She could ask dumb questions without embarrassment. She could practice at 2am. She could spend 45 minutes on one concept until it clicked, or blow through five in a row when she was on a roll. The tutor adapted to *her* — not the other way around.
+She could ask questions without embarrassment. She could practice at 2am. She could spend 45 minutes on one concept until it clicked, or blow through five in a row when she was on a roll. The tutor adapted to *her* — not the other way around.
 
 Within three months, Lori went from not knowing what a subnet mask was to:
 
