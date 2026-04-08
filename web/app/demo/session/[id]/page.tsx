@@ -49,6 +49,11 @@ export default function SessionPage() {
 	const chatEndRef = useRef<HTMLDivElement>(null)
 	const inputRef = useRef<HTMLInputElement>(null)
 
+	const isOscp = session?.educationLevel === "oscp"
+	const isClaude = session?.educationLevel === "claude-cert"
+
+	const accentColor = isOscp ? "#ef4444" : isClaude ? "#F5B800" : "#4f9cf7"
+
 	const fetchSession = useCallback(async () => {
 		try {
 			const res = await fetch(`${API}/demo-sessions/${id}`)
@@ -180,6 +185,7 @@ export default function SessionPage() {
 
 	const remainingMinutes = Math.max(0, 25 * 60 - elapsed)
 	const isTimeWarning = remainingMinutes < 5 * 60
+	const certLabel = isOscp ? "OSCP" : isClaude ? "Claude CCA" : "CISSP"
 
 	return (
 		<main className="h-dvh bg-[#0a0a0a] flex flex-col relative">
@@ -195,10 +201,10 @@ export default function SessionPage() {
 							</div>
 							<div className="flex-1 min-w-0">
 								<div className="font-sans text-sm font-semibold text-green-400">
-									Problem solved!
+									{isOscp ? "Box owned!" : "Problem solved!"}
 								</div>
 								<div className="font-sans text-xs text-green-400/60 truncate">
-									{solvedCount} of {totalProblems} completed — moving to next problem
+									{solvedCount} of {totalProblems} completed — moving to next {isOscp ? "scenario" : "problem"}
 								</div>
 							</div>
 						</div>
@@ -207,11 +213,15 @@ export default function SessionPage() {
 			)}
 
 			{/* Header */}
-			<header className="shrink-0 border-b border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
+			<header className="shrink-0 border-b border-[#2a2a2a] px-4 py-2.5 flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<span className="font-sans text-xs font-semibold text-[#4f9cf7] tracking-[0.06em] uppercase">Magister</span>
+					<span className="font-sans text-xs font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
+					<span className="text-[#333] font-sans text-[10px]">/</span>
+					<span className="font-sans text-xs font-medium text-[#888]">Magister</span>
 					<span className="w-px h-4 bg-[#2a2a2a]" />
-					<span className="font-sans text-sm text-[#888]">{session.studentName}</span>
+					<span className="font-sans text-xs font-semibold px-2 py-0.5 rounded" style={{ color: accentColor, backgroundColor: accentColor + "15" }}>
+						{certLabel}
+					</span>
 				</div>
 				<div className="flex items-center gap-4">
 					<span className={`font-mono text-sm tabular-nums ${isTimeWarning ? "text-red-400" : "text-[#888]"}`}>
@@ -229,31 +239,36 @@ export default function SessionPage() {
 
 			{/* Problem bar */}
 			{currentProblem && (
-				<div className="shrink-0 border-b border-[#2a2a2a] px-4 py-3 bg-[#0d0d0d]">
+				<div className="shrink-0 border-b px-4 py-3" style={{ borderColor: isOscp ? "#2a2a2a" : "#2a2a2a", backgroundColor: isOscp ? "#0c0808" : "#0d0d0d" }}>
 					<div className="max-w-[720px] mx-auto flex items-start justify-between gap-4">
 						<div className="flex-1 min-w-0">
 							<div className="flex items-center gap-2 mb-1">
 								<span className="font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.06em]">
-									Problem {problemIndex + 1} of {totalProblems}
+									{isOscp ? "Scenario" : "Problem"} {problemIndex + 1} of {totalProblems}
 								</span>
 								<span className={`font-sans text-[10px] px-1.5 py-0.5 rounded-full ${
-									currentProblem.difficulty === "foundational" ? "bg-green-500/15 text-green-400" :
-									currentProblem.difficulty === "on-grade" ? "bg-blue-500/15 text-blue-400" :
+									currentProblem.difficulty === "beginner" ? "bg-green-500/15 text-green-400" :
+									currentProblem.difficulty === "intermediate" ? "bg-blue-500/15 text-blue-400" :
 									"bg-amber-500/15 text-amber-400"
 								}`}>
 									{currentProblem.difficulty}
 								</span>
 							</div>
-							<RenderMath text={currentProblem.question} className="font-serif text-lg text-white" />
+							{isOscp ? (
+								<div className="font-mono text-[14px] text-[#ef4444]/90 leading-relaxed">{currentProblem.question}</div>
+							) : (
+								<RenderMath text={currentProblem.question} className="font-serif text-lg text-white" />
+							)}
 						</div>
 						{/* Progress dots */}
 						<div className="flex gap-1 pt-1">
 							{Array.from({ length: totalProblems }).map((_, i) => (
 								<div
 									key={`dot-${i}`}
-									className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-										i < problemIndex ? "bg-green-500" : i === problemIndex ? "bg-[#4f9cf7]" : "bg-[#2a2a2a]"
-									}`}
+									className="w-2 h-2 rounded-full transition-colors duration-300"
+									style={{
+										backgroundColor: i < problemIndex ? "#22c55e" : i === problemIndex ? accentColor : "#2a2a2a",
+									}}
 								/>
 							))}
 						</div>
@@ -261,50 +276,87 @@ export default function SessionPage() {
 				</div>
 			)}
 
-			{/* Chat area */}
-			<div className="flex-1 overflow-y-auto px-4 py-6">
+			{/* Chat / Terminal area */}
+			<div className="flex-1 overflow-y-auto px-4 py-6" style={isOscp ? { backgroundColor: "#080808" } : undefined}>
 				<div className="max-w-[720px] mx-auto space-y-4">
-					{messages.map((msg, i) => (
-						<ChatBubble key={`${msg.timestamp}-${i}`} msg={msg} studentName={session.studentName} />
-					))}
+					{isOscp ? (
+						// Terminal-style UI for OSCP
+						<>
+							{messages.map((msg, i) => (
+								<TerminalBlock key={`${msg.timestamp}-${i}`} msg={msg} />
+							))}
+						</>
+					) : (
+						// Standard chat UI for CISSP / Claude CCA
+						<>
+							{messages.map((msg, i) => (
+								<ChatBubble key={`${msg.timestamp}-${i}`} msg={msg} accentColor={accentColor} />
+							))}
+						</>
+					)}
 					{sending && (
-						<div className="flex items-start gap-3">
-							<div className="w-7 h-7 rounded-full bg-[#4f9cf7]/20 flex items-center justify-center shrink-0">
-								<span className="font-mono text-xs text-[#4f9cf7] font-bold">M</span>
+						isOscp ? (
+							<div className="font-mono text-[13px] text-[#ef4444]/60 animate-pulse">
+								[magister] analyzing...
 							</div>
-							<div className="bg-[#141414] border border-[#2a2a2a] rounded-xl rounded-tl-sm px-4 py-3">
-								<div className="flex gap-1">
-									<span className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: "0ms" }} />
-									<span className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: "150ms" }} />
-									<span className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: "300ms" }} />
+						) : (
+							<div className="flex items-start gap-3">
+								<div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: accentColor + "20" }}>
+									<span className="font-mono text-xs font-bold" style={{ color: accentColor }}>M</span>
+								</div>
+								<div className="bg-[#141414] border border-[#2a2a2a] rounded-xl rounded-tl-sm px-4 py-3">
+									<div className="flex gap-1">
+										<span className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: "0ms" }} />
+										<span className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: "150ms" }} />
+										<span className="w-1.5 h-1.5 rounded-full bg-[#555] animate-bounce" style={{ animationDelay: "300ms" }} />
+									</div>
 								</div>
 							</div>
-						</div>
+						)
 					)}
 					<div ref={chatEndRef} />
 				</div>
 			</div>
 
 			{/* Input */}
-			<div className="shrink-0 border-t border-[#2a2a2a] px-4 py-3">
+			<div className="shrink-0 border-t border-[#2a2a2a] px-4 py-3" style={isOscp ? { backgroundColor: "#080808" } : undefined}>
 				<div className="max-w-[720px] mx-auto flex gap-2">
-					<input
-						ref={inputRef}
-						type="text"
-						value={input}
-						onChange={(e) => setInput(e.target.value)}
-						onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-						placeholder="Type your answer or ask for help..."
-						disabled={sending}
-						className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#4f9cf7] transition-colors disabled:opacity-50"
-					/>
+					{isOscp ? (
+						// Terminal-style input for OSCP
+						<div className="flex-1 flex items-center bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 focus-within:border-[#ef4444]/50 transition-colors">
+							<span className="font-mono text-sm text-[#ef4444] mr-2 shrink-0 select-none">$</span>
+							<input
+								ref={inputRef}
+								type="text"
+								value={input}
+								onChange={(e) => setInput(e.target.value)}
+								onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+								placeholder="type your answer or command..."
+								disabled={sending}
+								className="flex-1 bg-transparent text-[#22c55e] font-mono text-sm placeholder:text-[#333] focus:outline-none disabled:opacity-50"
+							/>
+						</div>
+					) : (
+						<input
+							ref={inputRef}
+							type="text"
+							value={input}
+							onChange={(e) => setInput(e.target.value)}
+							onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+							placeholder="Type your answer or ask for help..."
+							disabled={sending}
+							className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none transition-colors disabled:opacity-50"
+							style={{ borderColor: undefined }}
+						/>
+					)}
 					<button
 						type="button"
 						onClick={sendMessage}
 						disabled={sending || !input.trim()}
-						className="px-5 py-3 rounded-xl bg-[#4f9cf7] text-white font-sans text-sm font-semibold hover:bg-[#3d8be5] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+						className="px-5 py-3 rounded-xl text-white font-sans text-sm font-semibold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+						style={{ backgroundColor: accentColor }}
 					>
-						Send
+						{isOscp ? "Run" : "Send"}
 					</button>
 				</div>
 			</div>
@@ -322,24 +374,84 @@ export default function SessionPage() {
 	)
 }
 
-function ChatBubble({ msg, studentName }: { msg: SessionMsg; studentName: string }) {
+/** Terminal-style message block for OSCP */
+function TerminalBlock({ msg }: { msg: SessionMsg }) {
+	const isTutor = msg.role === "tutor"
+
+	if (!isTutor) {
+		// Student input shown as command
+		return (
+			<div className="font-mono text-sm">
+				<span className="text-[#ef4444]">$ </span>
+				<span className="text-[#22c55e]">{msg.content}</span>
+			</div>
+		)
+	}
+
+	// Tutor response — render with code block detection
+	return (
+		<div className="mb-2">
+			<div className="font-mono text-[13px] text-[#ef4444]/50 mb-1 select-none">[magister]</div>
+			<div className="font-sans text-[14px] text-[#ccc] leading-relaxed whitespace-pre-wrap">
+				<RenderTerminalContent text={msg.content} />
+			</div>
+			{msg.diagrams && msg.diagrams.length > 0 && (
+				<div className="mt-3 space-y-3">
+					{msg.diagrams.map((svg, i) => (
+						<div
+							key={`diagram-${i}`}
+							className="bg-[#0a0a0a] rounded-lg p-3 border border-[#ef4444]/20"
+							dangerouslySetInnerHTML={{ __html: svg }}
+						/>
+					))}
+				</div>
+			)}
+			<div className="mt-2 border-b border-[#1a1a1a]" />
+		</div>
+	)
+}
+
+/** Renders tutor content with inline code and code blocks highlighted */
+function RenderTerminalContent({ text }: { text: string }) {
+	// Convert markdown-style code blocks and bold to HTML
+	let html = text
+	// Code blocks: ```...```
+	html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_m, _lang, code) =>
+		`<pre class="my-2 px-3 py-2 rounded bg-[#111] border border-[#1a1a1a] font-mono text-[13px] text-[#22c55e] overflow-x-auto">${code.trim()}</pre>`
+	)
+	// Inline code: `...`
+	html = html.replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 rounded bg-[#111] text-[#22c55e] font-mono text-[13px]">$1</code>')
+	// Bold
+	html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+	// Newlines
+	html = html.replace(/\n/g, "<br/>")
+
+	return <span dangerouslySetInnerHTML={{ __html: html }} />
+}
+
+/** Standard chat bubble for CISSP / Claude CCA */
+function ChatBubble({ msg, accentColor }: { msg: SessionMsg; accentColor: string }) {
 	const isTutor = msg.role === "tutor"
 
 	return (
 		<div className={`flex items-start gap-3 ${isTutor ? "" : "flex-row-reverse"}`}>
-			<div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-				isTutor ? "bg-[#4f9cf7]/20" : "bg-[#2a2a2a]"
-			}`}>
-				<span className={`font-mono text-xs font-bold ${isTutor ? "text-[#4f9cf7]" : "text-[#888]"}`}>
-					{isTutor ? "M" : studentName[0]?.toUpperCase()}
+			<div
+				className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+				style={{ backgroundColor: isTutor ? accentColor + "20" : "#2a2a2a" }}
+			>
+				<span className="font-mono text-xs font-bold" style={{ color: isTutor ? accentColor : "#888" }}>
+					{isTutor ? "M" : "Y"}
 				</span>
 			</div>
 			<div className={`max-w-[85%] ${isTutor ? "" : "text-right"}`}>
-				<div className={`rounded-xl px-4 py-3 ${
-					isTutor
-						? "bg-[#141414] border border-[#2a2a2a] rounded-tl-sm"
-						: "bg-[#4f9cf7]/15 border border-[#4f9cf7]/20 rounded-tr-sm"
-				}`}>
+				<div
+					className={`rounded-xl px-4 py-3 ${
+						isTutor
+							? "bg-[#141414] border border-[#2a2a2a] rounded-tl-sm"
+							: "rounded-tr-sm"
+					}`}
+					style={!isTutor ? { backgroundColor: accentColor + "15", borderWidth: 1, borderStyle: "solid", borderColor: accentColor + "30" } : undefined}
+				>
 					<RenderMath
 						text={msg.content}
 						className={`font-sans text-[15px] leading-relaxed ${isTutor ? "text-[#e8e8e8]" : "text-white text-left"}`}
@@ -374,6 +486,14 @@ function renderMathInText(text: string): string {
 		currencySlots.push(match)
 		return `\x00CUR${currencySlots.length - 1}\x00`
 	})
+
+	// Code blocks
+	result = result.replace(/```(\w*)\n?([\s\S]*?)```/g, (_m, _lang, code) =>
+		`<pre class="my-2 px-3 py-2 rounded-lg bg-[#111] border border-[#1a1a1a] font-mono text-[13px] text-[#22c55e] overflow-x-auto whitespace-pre-wrap">${code.trim()}</pre>`
+	)
+
+	// Inline code
+	result = result.replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 rounded bg-[#111] text-[#22c55e] font-mono text-[13px]">$1</code>')
 
 	result = result.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
 

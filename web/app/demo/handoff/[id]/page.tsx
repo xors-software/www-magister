@@ -97,7 +97,9 @@ export default function HandoffPage() {
 			{/* Header */}
 			<header className="border-b border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<span className="font-sans text-xs font-semibold text-[#4f9cf7] tracking-[0.06em] uppercase">Magister</span>
+					<span className="font-sans text-xs font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
+					<span className="text-[#333] font-sans text-[10px]">/</span>
+					<span className="font-sans text-xs font-medium text-[#888]">Magister</span>
 					<span className="w-px h-4 bg-[#2a2a2a]" />
 					<span className="font-sans text-sm text-[#888]">Tutor Handoff</span>
 				</div>
@@ -115,7 +117,7 @@ export default function HandoffPage() {
 						</div>
 						<div>
 							<h1 className="font-serif text-[22px] font-bold text-white leading-none">{handoff.studentName}</h1>
-							<span className="font-sans text-xs text-[#555]">{handoff.gradeLevel > 12 ? "University" : `Grade ${handoff.gradeLevel}`} &middot; {handoff.topic} &middot; {handoff.sessionDuration}</span>
+							<span className="font-sans text-xs text-[#555]">{handoff.topic} &middot; {handoff.sessionDuration}</span>
 						</div>
 					</div>
 				</div>

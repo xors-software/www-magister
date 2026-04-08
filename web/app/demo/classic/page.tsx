@@ -1,97 +1,80 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
-type EducationLevel = "k12" | "university" | "professional" | "competition"
+type EducationLevel = "cissp" | "oscp" | "claude-cert"
 
-const K12_TOPICS = [
-	{ id: "linear-equations", label: "Linear Equations", description: "Solve one-step through multi-step equations", icon: "x" },
-	{ id: "fractions-decimals", label: "Fractions & Decimals", description: "Add, multiply, and convert fractions", icon: "%" },
-	{ id: "proportional-reasoning", label: "Proportional Reasoning", description: "Unit rates, proportions, and percentages", icon: "∝" },
-	{ id: "expressions", label: "Expressions & Variables", description: "Evaluate and simplify algebraic expressions", icon: "a" },
-	{ id: "geometry", label: "Geometry", description: "Area, Pythagorean theorem, volume", icon: "△" },
-	{ id: "physics-mechanics", label: "Physics: Forces & Motion", description: "Newton's laws, velocity, acceleration, friction", icon: "F" },
-	{ id: "physics-energy", label: "Physics: Energy & Work", description: "Kinetic energy, work, conservation of energy", icon: "E" },
+const CISSP_TOPICS = [
+	{ id: "cissp-security-risk-mgmt", label: "Security & Risk Management", description: "Risk analysis, BCP/DRP, governance, compliance", icon: "1" },
+	{ id: "cissp-asset-security", label: "Asset Security", description: "Data classification, ownership, retention & destruction", icon: "2" },
+	{ id: "cissp-security-architecture", label: "Security Architecture", description: "Security models, cryptography, secure design", icon: "3" },
+	{ id: "cissp-network-security", label: "Network Security", description: "Network attacks, secure protocols, VPNs", icon: "4" },
+	{ id: "cissp-iam", label: "Identity & Access Management", description: "Access control, authentication, identity lifecycle", icon: "5" },
+	{ id: "cissp-security-assessment", label: "Security Assessment", description: "Vulnerability assessment, pen testing, audits", icon: "6" },
+	{ id: "cissp-security-operations", label: "Security Operations", description: "Incident response, forensics, logging", icon: "7" },
+	{ id: "cissp-software-security", label: "Software Development Security", description: "Secure SDLC, injection attacks, DevSecOps", icon: "8" },
 ]
 
-const UNIVERSITY_TOPICS = [
-	{ id: "calculus", label: "Calculus", description: "Derivatives, integrals, and the chain rule", icon: "∫" },
-	{ id: "linear-algebra", label: "Linear Algebra", description: "Matrices, determinants, eigenvalues", icon: "M" },
-	{ id: "statistics", label: "Statistics & Probability", description: "Hypothesis testing, distributions, probability", icon: "σ" },
-	{ id: "classical-mechanics", label: "Classical Mechanics", description: "Projectile motion, torque, rotational dynamics", icon: "τ" },
-	{ id: "electromagnetism", label: "Electromagnetism", description: "Coulomb's law, circuits, Ohm's law", icon: "⚡" },
-	{ id: "thermodynamics", label: "Thermodynamics", description: "Ideal gas law, heat transfer, entropy", icon: "Q" },
-	{ id: "microeconomics", label: "Microeconomics", description: "Supply & demand, elasticity, equilibrium", icon: "$" },
-	{ id: "organic-chemistry", label: "Organic Chemistry", description: "Functional groups, reaction mechanisms", icon: "⬡" },
+const OSCP_TOPICS = [
+	{ id: "oscp-enumeration", label: "Enumeration", description: "Port scanning, service detection, web/SMB enumeration", icon: ">" },
+	{ id: "oscp-exploitation", label: "Exploitation", description: "Public exploits, reverse shells, password attacks", icon: "!" },
+	{ id: "oscp-privilege-escalation", label: "Privilege Escalation", description: "Linux & Windows privesc, SUID, sudo, tokens", icon: "^" },
+	{ id: "oscp-pivoting", label: "Pivoting & Tunneling", description: "SSH tunnels, Chisel, SOCKS proxies, lateral movement", icon: "#" },
+	{ id: "oscp-active-directory", label: "Active Directory", description: "BloodHound, Kerberoasting, AS-REP, DCSync", icon: "D" },
+	{ id: "oscp-web-attacks", label: "Web Attacks", description: "SQLi, LFI/RFI, file upload, command injection", icon: "W" },
+	{ id: "oscp-report-writing", label: "Report Writing", description: "Findings, executive summary, methodology docs", icon: "R" },
 ]
 
-const PROFESSIONAL_TOPICS = [
-	{ id: "cissp-security-risk-mgmt", label: "Domain 1: Security & Risk Management", description: "Risk analysis, BCP/DRP, governance, legal & regulatory compliance", icon: "1" },
-	{ id: "cissp-asset-security", label: "Domain 2: Asset Security", description: "Data classification, ownership, handling, retention & destruction", icon: "2" },
-	{ id: "cissp-security-architecture", label: "Domain 3: Security Architecture & Engineering", description: "Security models, cryptography, secure design principles", icon: "3" },
-	{ id: "cissp-network-security", label: "Domain 4: Communication & Network Security", description: "Network attacks, secure protocols, VPNs, OSI model", icon: "4" },
-	{ id: "cissp-iam", label: "Domain 5: Identity & Access Management", description: "Access control models, authentication, identity lifecycle", icon: "5" },
-	{ id: "cissp-security-assessment", label: "Domain 6: Security Assessment & Testing", description: "Vulnerability assessment, pen testing, audits & compliance", icon: "6" },
-	{ id: "cissp-security-operations", label: "Domain 7: Security Operations", description: "Incident response, forensics, logging, evidence handling", icon: "7" },
-	{ id: "cissp-software-security", label: "Domain 8: Software Development Security", description: "Secure SDLC, injection attacks, DevSecOps", icon: "8" },
+const CLAUDE_CERT_TOPICS = [
+	{ id: "claude-api-fundamentals", label: "API Fundamentals", description: "Messages API, models, tokens, streaming", icon: "A" },
+	{ id: "claude-prompt-engineering", label: "Prompt Engineering", description: "System prompts, few-shot, chain-of-thought", icon: "P" },
+	{ id: "claude-tool-use", label: "Tool Use", description: "Tool definitions, parallel calls, agentic loops", icon: "T" },
+	{ id: "claude-mcp", label: "MCP", description: "MCP servers, resources, prompts, transports", icon: "M" },
+	{ id: "claude-agent-design", label: "Agent Design", description: "Single/multi-agent systems, human-in-the-loop", icon: "O" },
+	{ id: "claude-system-architecture", label: "Architecture", description: "RAG, deployment, reliability, cost optimization", icon: "S" },
+	{ id: "claude-safety-alignment", label: "Safety & Alignment", description: "Guardrails, prompt injection, evaluation", icon: "!" },
 ]
 
-const COMPETITION_TOPICS = [
-	{ id: "ncae-linux-hardening", label: "Linux System Hardening", description: "SSH config, user audits, file permissions, service lockdown", icon: ">" },
-	{ id: "ncae-network-defense", label: "Network Defense", description: "nftables rules, DNS security, firewall configuration", icon: "#" },
-	{ id: "ncae-service-uptime", label: "Service Configuration & Uptime", description: "Keep web servers, databases, and services running under attack", icon: "^" },
-	{ id: "ncae-scripting", label: "Scripting & Automation", description: "Bash/Python for monitoring, defense automation, service checks", icon: "$" },
-	{ id: "ncae-incident-response", label: "Incident Detection & Response", description: "Spot attacks in logs, kill reverse shells, investigate compromises", icon: "!" },
-	{ id: "ncae-ctf-crypto", label: "CTF: Cryptography", description: "Base64, Caesar ciphers, encoding vs. encryption", icon: "?" },
-	{ id: "ncae-ctf-forensics", label: "CTF: Digital Forensics", description: "File analysis, magic bytes, attack reconstruction", icon: "~" },
-	{ id: "ncae-windows-hardening", label: "Windows System Hardening", description: "Firewall, services, account policies, PowerShell hardening", icon: "W" },
-]
-
-const K12_GRADES = [6, 7, 8, 9, 10, 11, 12]
+const LEVEL_CONFIG = {
+	cissp: { accent: "#4f9cf7", label: "CISSP", defaultTopic: "cissp-security-risk-mgmt", subtitle: "8 domains · $749 exam", tagline: "Think like a security manager" },
+	oscp: { accent: "#ef4444", label: "OSCP", defaultTopic: "oscp-enumeration", subtitle: "7 skill areas · $1,749 exam", tagline: "Hack boxes, write reports" },
+	"claude-cert": { accent: "#F5B800", label: "Claude CCA", defaultTopic: "claude-api-fundamentals", subtitle: "7 topic areas · $250 exam", tagline: "Build production-grade AI systems" },
+} as const
 
 export default function DemoPage() {
 	const router = useRouter()
-	const [name, setName] = useState("")
-	const [educationLevel, setEducationLevel] = useState<EducationLevel>("k12")
-	const [grade, setGrade] = useState(8)
-	const [topic, setTopic] = useState("linear-equations")
+	const searchParams = useSearchParams()
+	const [educationLevel, setEducationLevel] = useState<EducationLevel>("cissp")
+	const [topic, setTopic] = useState("cissp-security-risk-mgmt")
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState("")
 
-	const currentTopics = educationLevel === "competition"
-		? COMPETITION_TOPICS
-		: educationLevel === "professional"
-			? PROFESSIONAL_TOPICS
-			: educationLevel === "university"
-				? UNIVERSITY_TOPICS
-				: K12_TOPICS
+	useEffect(() => {
+		const levelParam = searchParams.get("level") as EducationLevel | null
+		if (levelParam && LEVEL_CONFIG[levelParam]) {
+			setEducationLevel(levelParam)
+			setTopic(LEVEL_CONFIG[levelParam].defaultTopic)
+		}
+	}, [searchParams])
+
+	const config = LEVEL_CONFIG[educationLevel]
+
+	const currentTopics = educationLevel === "oscp"
+		? OSCP_TOPICS
+		: educationLevel === "claude-cert"
+			? CLAUDE_CERT_TOPICS
+			: CISSP_TOPICS
 
 	function switchEducationLevel(level: EducationLevel) {
 		setEducationLevel(level)
-		if (level === "competition") {
-			setTopic("ncae-linux-hardening")
-			setGrade(0)
-		} else if (level === "professional") {
-			setTopic("cissp-security-risk-mgmt")
-			setGrade(0)
-		} else if (level === "university") {
-			setTopic("calculus")
-			setGrade(13)
-		} else {
-			setTopic("linear-equations")
-			setGrade(8)
-		}
+		setTopic(LEVEL_CONFIG[level].defaultTopic)
 	}
 
 	async function startSession() {
-		if (!name.trim()) {
-			setError("Enter your name to get started.")
-			return
-		}
 		setLoading(true)
 		setError("")
 
@@ -100,9 +83,7 @@ export default function DemoPage() {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
-					studentName: name.trim(),
 					educationLevel,
-					gradeLevel: grade,
 					topic,
 				}),
 			})
@@ -121,146 +102,92 @@ export default function DemoPage() {
 
 	return (
 		<main className="min-h-dvh bg-[#0a0a0a] flex items-center justify-center px-4 py-10">
-			<div className="w-full max-w-[520px]">
-				<Link href="/" className="block mb-10">
-					<div className="font-sans text-[13px] font-medium text-[#555] tracking-[0.06em] uppercase">
-						Magister
+			<div className="w-full max-w-[540px]">
+				<Link href="/" className="block mb-8">
+					<div className="flex items-center gap-2">
+						<span className="font-sans text-[13px] font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
+						<span className="text-[#333] font-sans text-xs">/</span>
+						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Magister</span>
 					</div>
 				</Link>
 
 				<h1 className="font-serif text-[32px] font-bold text-white leading-[1.2] tracking-[-0.02em] mb-2">
-					Start a tutoring session
+					Pick your certification
 				</h1>
-				<p className="font-sans text-[15px] text-[#888] mb-8">
-					Work through problems with an AI Socratic tutor. Get clear feedback on every answer and learn the reasoning behind each solution.
+				<p className="font-sans text-[14px] text-[#888] mb-8">
+					Choose a cert and topic. The AI tutor will guide you through realistic scenarios — no experience required.
 				</p>
 
-				{/* Name */}
-				<div className="mb-5">
-					<label htmlFor="name" className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
-						Your name
-					</label>
-					<input
-						id="name"
-						type="text"
-						value={name}
-						onChange={(e) => setName(e.target.value)}
-						placeholder="e.g. Marcus"
-						className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg px-4 py-3 text-white font-sans text-[15px] placeholder:text-[#555] focus:outline-none focus:border-[#4f9cf7] transition-colors"
-						onKeyDown={(e) => e.key === "Enter" && startSession()}
-					/>
-				</div>
-
-				{/* Education Level */}
-				<div className="mb-5">
-					<label className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
-						Education level
-					</label>
-					<div className="flex gap-2">
-						<button
-							type="button"
-							onClick={() => switchEducationLevel("k12")}
-							className={`flex-1 py-2.5 rounded-lg font-sans text-sm font-medium transition-all ${
-								educationLevel === "k12"
-									? "bg-[#4f9cf7] text-white"
-									: "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
-							}`}
-						>
-							K-12
-						</button>
-						<button
-							type="button"
-							onClick={() => switchEducationLevel("university")}
-							className={`flex-1 py-2.5 rounded-lg font-sans text-sm font-medium transition-all ${
-								educationLevel === "university"
-									? "bg-[#4f9cf7] text-white"
-									: "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
-							}`}
-						>
-							University
-						</button>
-						<button
-							type="button"
-							onClick={() => switchEducationLevel("professional")}
-							className={`flex-1 py-2.5 rounded-lg font-sans text-sm font-medium transition-all ${
-								educationLevel === "professional"
-									? "bg-[#4f9cf7] text-white"
-									: "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
-							}`}
-						>
-							CISSP
-						</button>
-						<button
-							type="button"
-							onClick={() => switchEducationLevel("competition")}
-							className={`flex-1 py-2.5 rounded-lg font-sans text-sm font-medium transition-all ${
-								educationLevel === "competition"
-									? "bg-[#4f9cf7] text-white"
-									: "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
-							}`}
-						>
-							Cyber Games
-						</button>
-					</div>
-				</div>
-
-				{/* Grade (K-12 only) */}
-				{educationLevel === "k12" && (
-					<div className="mb-5">
-						<label className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
-							Grade level
-						</label>
-						<div className="flex gap-2 flex-wrap">
-							{K12_GRADES.map((g) => (
-								<button
-									key={g}
-									type="button"
-									onClick={() => setGrade(g)}
-									className={`flex-1 min-w-[44px] py-2.5 rounded-lg font-sans text-sm font-medium transition-all ${
-										grade === g
-											? "bg-[#4f9cf7] text-white"
-											: "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
-									}`}
-								>
-									{g}
-								</button>
-							))}
-						</div>
-					</div>
-				)}
-
-				{/* Topic */}
-				<div className="mb-8">
-					<label className="block font-sans text-xs font-semibold text-[#888] uppercase tracking-[0.06em] mb-2">
-						{educationLevel === "competition" ? "Skill Area" : educationLevel === "professional" ? "CISSP Domain" : educationLevel === "university" ? "Subject" : "Topic"}
-					</label>
-					<div className="grid gap-2">
-						{currentTopics.map((t) => (
+				{/* Certification tabs */}
+				<div className="flex gap-2 mb-6">
+					{(["cissp", "oscp", "claude-cert"] as const).map((level) => {
+						const c = LEVEL_CONFIG[level]
+						const active = educationLevel === level
+						return (
 							<button
-								key={t.id}
+								key={level}
 								type="button"
-								onClick={() => setTopic(t.id)}
-								className={`text-left px-4 py-3 rounded-lg transition-all flex items-center gap-3 ${
-									topic === t.id
-										? "bg-[#4f9cf7]/10 border border-[#4f9cf7]/40"
-										: "bg-[#141414] border border-[#2a2a2a] hover:border-[#555]"
+								onClick={() => switchEducationLevel(level)}
+								className={`flex-1 py-3 rounded-xl font-sans text-sm font-semibold transition-all ${
+									active ? "text-white shadow-lg" : "bg-[#141414] border border-[#2a2a2a] text-[#888] hover:border-[#555]"
 								}`}
+								style={active ? { backgroundColor: c.accent } : undefined}
 							>
-								<span className={`w-9 h-9 rounded-md flex items-center justify-center font-mono text-sm font-bold shrink-0 ${
-									topic === t.id ? "bg-[#4f9cf7] text-white" : "bg-[#1a1a1a] text-[#555]"
-								}`}>
-									{t.icon}
-								</span>
-								<div>
-									<div className={`font-sans text-sm font-medium ${topic === t.id ? "text-white" : "text-[#e8e8e8]"}`}>
-										{t.label}
-									</div>
-									<div className="font-sans text-xs text-[#555]">
-										{t.description}
-									</div>
-								</div>
+								{c.label}
 							</button>
-						))}
+						)
+					})}
+				</div>
+
+				{/* Cert info */}
+				<div className="mb-6 px-1">
+					<div className="flex items-center gap-2 mb-1">
+						<span className="font-serif text-[17px] text-white italic">&ldquo;{config.tagline}&rdquo;</span>
+					</div>
+					<span className="font-sans text-xs text-[#555]">{config.subtitle}</span>
+				</div>
+
+				{/* Topics */}
+				<div className="mb-6">
+					<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-2">
+						{educationLevel === "oscp" ? "Skill area" : educationLevel === "claude-cert" ? "Topic" : "Domain"}
+					</label>
+					<div className="grid gap-1.5">
+						{currentTopics.map((t) => {
+							const active = topic === t.id
+							return (
+								<button
+									key={t.id}
+									type="button"
+									onClick={() => setTopic(t.id)}
+									className="text-left px-3.5 py-2.5 rounded-lg transition-all flex items-center gap-3"
+									style={{
+										backgroundColor: active ? config.accent + "15" : "#111",
+										borderWidth: 1,
+										borderStyle: "solid",
+										borderColor: active ? config.accent + "50" : "#1a1a1a",
+									}}
+								>
+									<span
+										className="w-8 h-8 rounded-md flex items-center justify-center font-mono text-xs font-bold shrink-0"
+										style={{
+											backgroundColor: active ? config.accent : "#1a1a1a",
+											color: active ? "white" : "#555",
+										}}
+									>
+										{t.icon}
+									</span>
+									<div className="min-w-0">
+										<div className={`font-sans text-[13px] font-medium truncate ${active ? "text-white" : "text-[#ccc]"}`}>
+											{t.label}
+										</div>
+										<div className="font-sans text-[11px] text-[#555] truncate">
+											{t.description}
+										</div>
+									</div>
+								</button>
+							)
+						})}
 					</div>
 				</div>
 
@@ -274,13 +201,14 @@ export default function DemoPage() {
 					type="button"
 					onClick={startSession}
 					disabled={loading}
-					className="w-full py-3.5 rounded-xl bg-[#4f9cf7] text-white font-sans text-[15px] font-semibold hover:bg-[#3d8be5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					className="w-full py-3.5 rounded-xl text-white font-sans text-[15px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					style={{ backgroundColor: config.accent }}
 				>
-					{loading ? "Starting session..." : "Begin session"}
+					{loading ? "Starting..." : "Start session"}
 				</button>
 
-				<p className="mt-4 font-sans text-xs text-[#555] text-center">
-					25-minute interactive tutoring session with real-time feedback
+				<p className="mt-3 font-sans text-[11px] text-[#555] text-center">
+					No signup. No experience needed. AI Socratic tutor powered by Claude.
 				</p>
 			</div>
 		</main>

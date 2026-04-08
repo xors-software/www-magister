@@ -59,11 +59,11 @@ export const demoSessionsRoutes = new Elysia({ prefix: "/demo-sessions" })
 	.post(
 		"/",
 		async ({ body }) => {
-			const educationLevel = (body.educationLevel || "k12") as EducationLevel;
+			const educationLevel = (body.educationLevel || "cissp") as EducationLevel;
 			const session = createSession(
-				body.studentName,
+				body.studentName || "Learner",
 				educationLevel,
-				body.gradeLevel,
+				body.gradeLevel || 0,
 				body.topic as Topic,
 			);
 			const problems = getProblemsForTopic(body.topic as Topic);
@@ -99,9 +99,9 @@ export const demoSessionsRoutes = new Elysia({ prefix: "/demo-sessions" })
 		},
 		{
 			body: t.Object({
-				studentName: t.String({ minLength: 1 }),
+				studentName: t.Optional(t.String()),
 				educationLevel: t.Optional(t.String()),
-				gradeLevel: t.Number({ minimum: 0, maximum: 16 }),
+				gradeLevel: t.Optional(t.Number()),
 				topic: t.String(),
 			}),
 		},

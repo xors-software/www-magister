@@ -3,472 +3,329 @@ import Link from "next/link"
 import { APP_CONFIG } from "@/config"
 
 export const metadata: Metadata = {
-	title: `${APP_CONFIG.NAME} — The Tutoring Gap Nobody's Building For`,
+	title: `${APP_CONFIG.NAME} by XORS — AI-Powered Certification Prep`,
 	description: APP_CONFIG.DESCRIPTION,
 }
 
-/* ───────────────────── Data ───────────────────── */
-
-const STATS = [
-	{ value: "33%", color: "text-red-500", label: "of 8th graders read\nbelow basic level" },
-	{ value: "10.8M", color: "text-amber-500", label: "students chronically\nabsent in 2024" },
-	{ value: "$2,500", color: "text-teal-500", label: "per-student cost of\nhigh-dosage tutoring" },
+const CERTIFICATIONS = [
+	{
+		name: "CISSP",
+		accent: "#4f9cf7",
+		price: "$749",
+		tagline: "Think like a security manager, not a test-taker",
+		description: "Scenario-based Socratic tutoring across all 8 CISSP domains. The AI tutor forces you to reason through real security decisions — not just recall definitions.",
+		topics: ["Risk Management", "Asset Security", "Architecture", "Network Security", "IAM", "Assessment", "Operations", "Software Security"],
+		stat: "8 domains",
+		cta: "Practice CISSP",
+		level: "cissp" as const,
+	},
+	{
+		name: "OSCP",
+		accent: "#ef4444",
+		price: "$1,749",
+		tagline: "Hack boxes, write reports, pass the exam",
+		description: "Practice offensive security methodology with AI-guided scenarios. Enumeration, exploitation, privilege escalation — with specific commands and VM-based interactive labs.",
+		topics: ["Enumeration", "Exploitation", "Privilege Escalation", "Pivoting", "Active Directory", "Web Attacks", "Report Writing"],
+		stat: "7 skill areas",
+		cta: "Practice OSCP",
+		level: "oscp" as const,
+		badge: "VM Labs coming soon",
+	},
+	{
+		name: "Claude CCA",
+		accent: "#F5B800",
+		price: "$250",
+		tagline: "Build production-grade AI systems",
+		description: "The first AI-native prep for Anthropic's Claude Certified Architect exam. Design real applications with tool use, MCP, agent orchestration, and safety guardrails.",
+		topics: ["API Fundamentals", "Prompt Engineering", "Tool Use", "MCP", "Agent Design", "Architecture", "Safety"],
+		stat: "7 topic areas",
+		cta: "Practice Claude CCA",
+		level: "claude-cert" as const,
+		badge: "First-of-its-kind",
+	},
 ]
 
-const BAR_CHART_EFFECTIVENESS = [
-	{ label: "Full HDT (2:1)", value: "0.40 SD", height: "65%", gradient: "from-teal-500 to-teal-600", delay: "" },
-	{ label: "Hybrid (Tutor + CAL)", value: "0.23 SD", height: "52%", gradient: "from-blue-400 to-blue-600", delay: "animation-delay-150" },
-	{ label: "ALEKS Alone", value: "~0.05 SD", height: "18%", gradient: "from-zinc-500 to-zinc-600", delay: "animation-delay-300" },
+const BROKEN_THINGS = [
+	{
+		stat: "$599–$1,749",
+		title: "Per exam attempt",
+		description: "Fail once and you're paying again. Most prep tools are another $50–300/mo on top of that.",
+	},
+	{
+		stat: "72%",
+		title: "First-time fail rate (OSCP)",
+		description: "The pass rate is abysmal because people memorize instead of understanding. Flashcards don't teach you to think.",
+	},
+	{
+		stat: "0",
+		title: "Adaptive AI tutors on the market",
+		description: "Every cert prep tool is static: question banks, video lectures, practice tests. None of them adapt to what YOU don't understand.",
+	},
+	{
+		stat: "Closed",
+		title: "Source exam content",
+		description: "ISC2, OffSec, and Anthropic control the content pipeline. We're building the open, AI-native alternative.",
+	},
 ]
 
-const BAR_CHART_COST = [
-	{ label: "Full HDT (2:1)", value: "$3,500", height: "90%", gradient: "from-red-500 to-red-700", delay: "", isTarget: false },
-	{ label: "Saga Hybrid", value: "$2,300", height: "66%", gradient: "from-amber-500 to-amber-600", delay: "animation-delay-150", isTarget: false },
-	{ label: "Khanmigo", value: "$35", height: "14%", gradient: "from-blue-400 to-blue-600", delay: "animation-delay-300", isTarget: false },
-	{ label: "AI-Powered CAL", value: "~$30", height: "10%", gradient: "from-green-500 to-green-600", delay: "animation-delay-450", isTarget: true },
+const HOW_IT_WORKS = [
+	{
+		step: "01",
+		title: "Pick your certification",
+		description: "CISSP, OSCP, or Claude CCA. Choose a specific domain or skill area to drill.",
+	},
+	{
+		step: "02",
+		title: "Face real scenarios",
+		description: "No multiple choice. You get realistic scenarios and must explain your reasoning — like the real exam.",
+	},
+	{
+		step: "03",
+		title: "Get Socratic feedback",
+		description: "The AI tutor pushes you deeper. It asks WHY, probes edge cases, and teaches when you're stuck — not before.",
+	},
+	{
+		step: "04",
+		title: "See your knowledge map",
+		description: "Every session produces a diagnostic handoff showing your gaps, misconceptions, and exactly what to study next.",
+	},
 ]
-
-const COMPARISON_ROWS = [
-	{ feature: "Socratic dialogue", aleks: { text: "None", status: "no" }, khanmigo: { text: "Yes", status: "yes" }, needed: { text: "✓", status: "yes" } },
-	{ feature: "Error diagnosis", aleks: { text: "Binary", status: "no" }, khanmigo: { text: "~80% accuracy", status: "partial" }, needed: { text: "Deep + reliable", status: "gap" } },
-	{ feature: "Math computation", aleks: { text: "Reliable", status: "yes" }, khanmigo: { text: "Needs calculator", status: "no" }, needed: { text: "Hybrid engine", status: "gap" } },
-	{ feature: "Hint quality", aleks: { text: "Generic", status: "partial" }, khanmigo: { text: "35% error rate", status: "partial" }, needed: { text: "Scaffolded + safe", status: "gap" } },
-	{ feature: "Tutor handoff", aleks: { text: "None", status: "no" }, khanmigo: { text: "None", status: "no" }, needed: { text: "Knowledge map", status: "gap" } },
-	{ feature: "Built for hybrid HDT", aleks: { text: "Retrofitted", status: "no" }, khanmigo: { text: "Standalone", status: "no" }, needed: { text: "Purpose-built", status: "gap" } },
-]
-
-const WHAT_NEEDED = [
-	"The AI gets the student for half the session and must **diagnose exactly where they're stuck** through Socratic questioning — not multiple choice",
-	"It produces a **handoff artifact** — a concise knowledge map of gaps identified and priorities — for the human tutor to use in their half",
-	"The human tutor session becomes **2x more productive** because they're not spending 10 minutes figuring out where the student is",
-	"The diagnostic loop compounds: AI diagnoses → human tutors → AI measures progress → human adjusts",
-]
-
-const SOURCES = [
-	{ id: 1, text: 'NAEP 2024 Results — ', link: "https://nces.ed.gov/nationsreportcard/", linkText: "nces.ed.gov/nationsreportcard", extra: "; UChicago Education Lab analysis of NAEP score distributions" },
-	{ id: 2, text: "White House analysis of chronic absenteeism and NAEP declines; Attendance Works data, 2024" },
-	{ id: 3, text: "RAND Corporation teacher surveys; McKinsey & Company analysis of teacher time allocation" },
-	{ id: 4, text: 'Bhatt, M., Guryan, J., Khan, S., LaForest-Tucker, M., & Mishra, B. (2024). "Can Technology Facilitate Scale? Evidence from a Randomized Evaluation of High Dosage Tutoring." ', link: "https://educationlab.uchicago.edu/projects/saga-tech/", linkText: "NBER Working Paper 32510" },
-	{ id: 5, text: "ALEKS — Assessment and Learning in Knowledge Spaces. Originally developed at UC Irvine, 1994. Now McGraw-Hill. ", link: "https://en.wikipedia.org/wiki/ALEKS", linkText: "Wikipedia" },
-	{ id: 6, text: "Common Sense Education review of ALEKS — ", link: "https://www.commonsense.org/education/reviews/aleks", linkText: "commonsense.org" },
-	{ id: 7, text: 'DiCerbo, K. (2025). Interview in Education Week on Khanmigo adoption growth — ', link: "https://www.edweek.org/technology/opinion-can-an-ai-powered-tutor-produce-meaningful-results/2025/07", linkText: "edweek.org" },
-	{ id: 8, text: '"Generating In-Context, Personalized Feedback for Intelligent Tutors with Large Language Models." International Journal of AI in Education, 2025 — ', link: "https://link.springer.com/article/10.1007/s40593-025-00505-6", linkText: "Springer" },
-	{ id: 9, text: "Khan Academy Blog — Khanmigo Math Computation and Tutoring Updates — ", link: "https://blog.khanacademy.org/khanmigo-math-computation-and-tutoring-updates/", linkText: "blog.khanacademy.org" },
-	{ id: 10, text: 'Masood, A. (2025). "The Quiet Math of EdTech — Can AI Tutors Really Teach?" — ', link: "https://medium.com/@adnanmasood/the-quiet-math-of-edtech-can-ai-tutors-really-teach-737195005abf", linkText: "Medium" },
-]
-
-/* ───────────────────── Page ───────────────────── */
 
 export default function Home() {
 	return (
-		<main className="min-h-dvh bg-[#0a0a0a]">
-			<div className="max-w-[680px] mx-auto px-6 pt-[60px] pb-20 md:px-6 max-sm:px-4 max-sm:pt-10 max-sm:pb-[60px]">
-
-				{/* ── Header ── */}
-				<p className="font-sans text-[13px] font-medium text-[#555] tracking-[0.06em] uppercase mb-4">
-					Problem Thesis · Feb 2026
-				</p>
-
-				<h1 className="font-serif text-[38px] max-sm:text-[28px] font-bold leading-[1.2] text-white mb-5 tracking-[-0.02em]">
-					The Best Education Intervention Can&rsquo;t Scale. AI Could Fix That — But Nobody&rsquo;s Building the Right Thing.
-				</h1>
-
-				<p className="text-[19px] text-[#888] leading-[1.6] mb-8 italic font-serif">
-					High-dosage tutoring is the strongest evidence-based intervention in K-12 education. It costs $2,500/student and we can&rsquo;t hire enough tutors. A UChicago RCT proved technology can replace half the tutor time — but the technology they used was from 1994.
-				</p>
-
-				<div className="flex flex-wrap gap-3 mb-10">
-					<Link
-						href="/teacher"
-						className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#4f9cf7] text-white font-sans text-[15px] font-semibold hover:bg-[#3d8be5] transition-colors no-underline"
-					>
-						<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M3 6L9 2L15 6V13L9 17L3 13V6Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
-							<path d="M9 2V17" stroke="currentColor" strokeWidth="1.5"/>
-						</svg>
-						Create a course
-					</Link>
+		<main className="min-h-dvh bg-[#0a0a0a] text-[#e8e8e8]">
+			{/* Nav */}
+			<nav className="fixed top-0 w-full z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-[#1a1a1a]">
+				<div className="max-w-[1100px] mx-auto px-6 h-14 flex items-center justify-between">
+					<div className="flex items-center gap-3">
+						<span className="font-sans text-[13px] font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
+						<span className="text-[#333] font-sans text-xs">/</span>
+						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Magister</span>
+					</div>
 					<Link
 						href="/demo/classic"
-						className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[#141414] border border-[#2a2a2a] text-white font-sans text-[15px] font-semibold hover:border-[#555] transition-colors no-underline"
+						className="font-sans text-sm font-medium px-4 py-1.5 rounded-lg bg-[#F5B800] text-black hover:bg-[#e0a800] transition-colors"
 					>
-						<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-							<path d="M9 1.5L11.3 6.1L16.5 6.9L12.75 10.55L13.6 15.7L9 13.3L4.4 15.7L5.25 10.55L1.5 6.9L6.7 6.1L9 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
-						</svg>
-						Try Socratic tutor demo
+						Try the demo
 					</Link>
 				</div>
+			</nav>
 
-				<Divider />
-
-				{/* ── Section 1: The Crisis ── */}
-				<BodyText>
-					The bottom is falling out of American education. Not the average — the <strong className="text-white font-semibold">bottom</strong>. The 2024 NAEP results showed that one-third of 8th graders now read below &ldquo;basic&rdquo; level, the highest share in the test&rsquo;s history.<Cite id={1} /> Learning losses from the pandemic aren&rsquo;t recovering — they&rsquo;re <strong className="text-white font-semibold">compounding</strong>. For the lowest-performing 10% of students, losses grew 70% <em>larger</em> between 2022 and 2024.<Cite id={1} />
-				</BodyText>
-
-				<StatRow stats={STATS} />
-
-				<BodyText>
-					Chronic absenteeism surged from ~15% pre-COVID to 28% in 2022, and remains around 24% today. A White House analysis found that absenteeism alone accounts for 16–27% of math declines and 36–45% of reading declines on NAEP.<Cite id={2} /> It&rsquo;s a feedback loop: students miss school, fall behind, school feels worse, they miss more.
-				</BodyText>
-
-				<BodyText>
-					Meanwhile, teachers are drowning. The typical teacher works 54 hours a week with <strong className="text-white font-semibold">less than half</strong> spent actually teaching.<Cite id={3} /> They spend 7–12 hours a week just searching for instructional resources. Delivering personalized feedback to 140 students at the depth needed would require 43–58 extra hours per week. It&rsquo;s impossible.
-				</BodyText>
-
-				{/* ── Section 2: The Best Intervention ── */}
-				<SectionHeading>The Best Intervention We Have</SectionHeading>
-
-				<BodyText>
-					High-dosage tutoring (HDT) — small group, 3+ days a week, during the school day, with a structured curriculum — has the <strong className="text-white font-semibold">strongest evidence base of any education intervention</strong>. Effect sizes of 0.23–0.40 standard deviations, equivalent to 1–2.5 extra years of math learning.<Cite id={4} />
-				</BodyText>
-
-				<BodyText>
-					But only 37% of schools offer it. Roughly 10% of students actually participate. The barriers are simple: <strong className="text-white font-semibold">cost and staffing</strong>. You need trained bodies in rooms. Not enough exist. And the ESSER funds that were financing most tutoring programs expired in September 2024.<Cite id={2} />
-				</BodyText>
-
-				{/* ── Section 3: The UChicago Breakthrough ── */}
-				<SectionHeading>The UChicago Breakthrough</SectionHeading>
-
-				<BodyText>
-					In May 2024, the UChicago Education Lab published results from an RCT of over 4,000 students across Chicago and NYC public schools.<Cite id={4} /> They tested a hybrid model: students in groups of 4, alternating daily between a human tutor (2 students) and a computer-assisted learning platform (2 students).
-				</BodyText>
-
-				<ChartSection
-					title="Tutoring Model Effectiveness"
-					subtitle="Effect size in standard deviations (higher = more learning)"
-					source="Source: Bhatt et al. (2024), NBER Working Paper 32510; ALEKS meta-analysis, Huang et al. (2021)"
-				>
-					<BarChart bars={BAR_CHART_EFFECTIVENESS} height="180px" />
-				</ChartSection>
-
-				<BodyText>
-					The hybrid model produced <strong className="text-white font-semibold">0.23 SD gains</strong> — nearly as large as full 2:1 tutoring — at <strong className="text-white font-semibold">30% lower cost</strong>. It halved the number of tutors needed.<Cite id={4} /> The per-pupil cost dropped from ~$3,500 to ~$2,300.
-				</BodyText>
-
-				<BodyText>
-					This is the strongest piece of evidence in modern education technology. But there&rsquo;s a problem.
-				</BodyText>
-
-				{/* ── Section 4: The CAL Was Built for a Past Era ── */}
-				<SectionHeading>The CAL Was Built for a Past Era</SectionHeading>
-
-				<BodyText>
-					The computer-assisted learning platform in the study was <strong className="text-white font-semibold">ALEKS</strong> — a McGraw-Hill product built on Knowledge Space Theory from 1994.<Cite id={5} /> It&rsquo;s a worksheet engine. Present problem, check answer, move on. No dialogue. No Socratic questioning. No ability to ask &ldquo;where did your thinking go wrong?&rdquo;
-				</BodyText>
-
-				<BodyText>
-					ALEKS&rsquo;s content is mostly traditional, decontextualized, and dry.<Cite id={6} /> There are few opportunities to explore concepts or build real understanding. It works best for students who already have strong self-regulation — precisely the students who <em>least</em> need intervention. For the students who are multiple grade levels behind, disengaged, and struggling? It&rsquo;s a dead end.
-				</BodyText>
-
-				<BodyText>
-					Worse: ALEKS operates in a silo. It has <strong className="text-white font-semibold">zero handoff</strong> to the human tutor. When a student rotates from the ALEKS session to the tutor session, the tutor starts from scratch — spending precious minutes re-diagnosing where the student is stuck instead of teaching.
-				</BodyText>
-
-				{/* ── Section 5: AI Tutoring Landscape ── */}
-				<SectionHeading>Current AI Tutoring: Closer, But Still Not It</SectionHeading>
-
-				<BodyText>
-					Khanmigo, Khan Academy&rsquo;s LLM-powered tutor, went from 68,000 users to over 700,000 in a single school year.<Cite id={7} /> It can have Socratic conversations and adapt in real time. That&rsquo;s genuine progress.
-				</BodyText>
-
-				<BodyText>
-					But the problems are real. A study evaluating GPT-4 for tutoring feedback found that <strong className="text-white font-semibold">35% of generated hints were too general, incorrect, or gave away the answer</strong>.<Cite id={8} /> Khan Academy has had to build a separate calculator because LLMs can&rsquo;t reliably do math computation.<Cite id={9} /> And the broader evidence is clear: <strong className="text-white font-semibold">teacher-in-the-loop consistently outperforms AI-only</strong>, with no credible evidence of hitting Bloom&rsquo;s 2-sigma through AI alone.<Cite id={10} />
-				</BodyText>
-
-				<ChartSection
-					title="The Gap Nobody's Filling"
-					subtitle="What exists vs. what the hybrid tutoring model actually needs"
-				>
-					<ComparisonTable rows={COMPARISON_ROWS} />
-				</ChartSection>
-
-				{/* ── Section 6: The Opportunity ── */}
-				<SectionHeading>What Needs to Exist</SectionHeading>
-
-				<BodyText>
-					Nobody has built the CAL specifically for the hybrid tutoring use case. ALEKS was a standalone product crammed into the rotation. Khanmigo is a standalone product sold to districts. Neither was designed from the ground up for the 25-minute alternating block where:
-				</BodyText>
-
-				<BulletList items={WHAT_NEEDED} />
-
-				<BodyText>
-					That handoff loop is the product nobody&rsquo;s built. And it maps directly onto the strongest evidence base in education.
-				</BodyText>
-
-				<ChartSection
-					title="Unit Economics of Scaling"
-					subtitle="Per-student annual cost by approach"
-					source="Sources: Bhatt et al. (2024); Khan Academy district pricing; Saga Education cost data"
-				>
-					<BarChart bars={BAR_CHART_COST} height="160px" />
-				</ChartSection>
-
-				<BodyText>
-					If AI-powered CAL delivers even <strong className="text-white font-semibold">30% of tutoring&rsquo;s effect at 5% of the cost</strong>, the ROI argument writes itself. At $30/student/year — matching Khanmigo&rsquo;s price point — districts can reach <strong className="text-white font-semibold">10x more students</strong> than with tutors alone. And unlike standalone AI tutoring, this plugs directly into the hybrid model that already has RCT-validated evidence.
-				</BodyText>
-
-				{/* ── The Pitch ── */}
-				<PitchBlock>
-					<p>10.8 million students were chronically absent last year. The ones who do show up are falling further behind. The best intervention we have works but costs $2,500/student and we can&rsquo;t hire enough tutors.</p>
-					<p className="mt-4">UChicago proved you can cut that cost 30% by alternating tutor time with technology. But the technology they used was pre-ChatGPT.</p>
-					<p className="mt-4">The gap is a <strong className="text-white font-semibold not-italic">Socratic diagnostic engine</strong> that identifies exactly where a student is stuck, adapts in real time, and hands the human tutor a knowledge map so their 25 minutes together actually count. Not a chatbot. Not a worksheet engine. A diagnostic layer that makes every tutor 2x more effective.</p>
-				</PitchBlock>
-
-				<BodyText>
-					Still, there are real challenges. LLM math accuracy remains unreliable without heavy scaffolding. The 35% hint error rate needs to be driven toward zero before this touches a classroom. And any solution needs to fit into existing school schedules and workflows — not require a new one.
-				</BodyText>
-
-				<BodyText>
-					I&rsquo;m building this. You can try it right now in two ways:
-				</BodyText>
-
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-8">
-					<Link href="/teacher" className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#4f9cf7]/40 hover:bg-[#4f9cf7]/5 transition-all no-underline group block">
-						<div className="w-9 h-9 rounded-lg bg-[#4f9cf7]/15 flex items-center justify-center mb-3">
-							<svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-[#4f9cf7]">
-								<path d="M3 6L9 2L15 6V13L9 17L3 13V6Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
-								<path d="M9 2V17" stroke="currentColor" strokeWidth="1.5"/>
-							</svg>
-						</div>
-						<div className="font-sans text-[15px] font-semibold text-white mb-1 group-hover:text-[#4f9cf7] transition-colors">
-							Course-based tutoring
-						</div>
-						<div className="font-sans text-sm text-[#888] leading-[1.5]">
-							Create a course, upload your materials (PDFs, notes), and let students chat with an AI tutor grounded in your content.
-						</div>
+			{/* Hero */}
+			<section className="pt-36 pb-24 px-6">
+				<div className="max-w-[720px] mx-auto text-center">
+					<div className="inline-flex gap-2 mb-8">
+						<span className="px-2.5 py-1 rounded-full bg-[#4f9cf7]/10 border border-[#4f9cf7]/30 font-sans text-xs font-medium text-[#4f9cf7]">CISSP</span>
+						<span className="px-2.5 py-1 rounded-full bg-[#ef4444]/10 border border-[#ef4444]/30 font-sans text-xs font-medium text-[#ef4444]">OSCP</span>
+						<span className="px-2.5 py-1 rounded-full bg-[#F5B800]/10 border border-[#F5B800]/30 font-sans text-xs font-medium text-[#F5B800]">Claude CCA</span>
+					</div>
+					<h1 className="font-serif text-[48px] sm:text-[64px] font-bold text-white leading-[1.05] tracking-[-0.03em] mb-6">
+						Certification prep<br />is broken.
+					</h1>
+					<p className="font-serif text-[21px] text-[#999] leading-[1.6] mb-4 max-w-[560px] mx-auto">
+						Exams cost $599–$1,749 per attempt. Prep tools are flashcard apps that teach memorization. Nobody offers adaptive, AI-native tutoring.
+					</p>
+					<p className="font-serif text-[21px] text-white leading-[1.6] mb-10 max-w-[560px] mx-auto">
+						Until now.
+					</p>
+					<Link
+						href="/demo/classic"
+						className="inline-block px-8 py-4 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
+					>
+						Start a free session
 					</Link>
-					<Link href="/demo/classic" className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-5 hover:border-[#4f9cf7]/40 hover:bg-[#4f9cf7]/5 transition-all no-underline group block">
-						<div className="w-9 h-9 rounded-lg bg-[#4f9cf7]/15 flex items-center justify-center mb-3">
-							<svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="text-[#4f9cf7]">
-								<path d="M9 1.5L11.3 6.1L16.5 6.9L12.75 10.55L13.6 15.7L9 13.3L4.4 15.7L5.25 10.55L1.5 6.9L6.7 6.1L9 1.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
-							</svg>
+					<p className="mt-4 font-sans text-xs text-[#555]">No signup required. 25-minute interactive session.</p>
+				</div>
+			</section>
+
+			{/* The problem — by the numbers */}
+			<section className="py-20 px-6 border-t border-[#1a1a1a] bg-[#080808]">
+				<div className="max-w-[1100px] mx-auto">
+					<div className="text-center mb-14">
+						<h2 className="font-serif text-[36px] font-bold text-white tracking-[-0.02em] mb-3">The certification industry is a racket</h2>
+						<p className="font-sans text-[15px] text-[#666] max-w-[480px] mx-auto">
+							Closed-source exams, predatory pricing, and prep tools stuck in 2010.
+						</p>
+					</div>
+					<div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+						{BROKEN_THINGS.map((item) => (
+							<div key={item.title} className="rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] p-6">
+								<div className="font-mono text-[28px] font-bold text-[#F5B800] mb-2">{item.stat}</div>
+								<h3 className="font-sans text-[14px] font-semibold text-white mb-2">{item.title}</h3>
+								<p className="font-sans text-[13px] text-[#666] leading-[1.6]">{item.description}</p>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			{/* What we're building */}
+			<section className="py-20 px-6 border-t border-[#1a1a1a]">
+				<div className="max-w-[1100px] mx-auto">
+					<div className="text-center mb-14">
+						<h2 className="font-serif text-[36px] font-bold text-white tracking-[-0.02em] mb-3">Three certs. One AI tutor.</h2>
+						<p className="font-sans text-[15px] text-[#666] max-w-[500px] mx-auto">
+							Magister uses Claude to deliver Socratic, scenario-based prep that adapts to your knowledge gaps in real time.
+						</p>
+					</div>
+					<div className="grid md:grid-cols-3 gap-4">
+						{CERTIFICATIONS.map((cert) => (
+							<div
+								key={cert.name}
+								className="rounded-2xl border border-[#2a2a2a] bg-[#111] p-6 hover:border-[#444] transition-colors group relative"
+							>
+								{cert.badge && (
+									<span
+										className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider"
+										style={{ backgroundColor: `${cert.accent}20`, color: cert.accent }}
+									>
+										{cert.badge}
+									</span>
+								)}
+								<div className="flex items-center gap-3 mb-4">
+									<span
+										className="w-10 h-10 rounded-lg flex items-center justify-center font-mono text-sm font-bold text-white"
+										style={{ backgroundColor: cert.accent }}
+									>
+										{cert.name.charAt(0)}
+									</span>
+									<div>
+										<h3 className="font-sans text-[15px] font-semibold text-white">{cert.name}</h3>
+										<span className="font-sans text-xs text-[#555]">{cert.stat} &middot; Exam: {cert.price}</span>
+									</div>
+								</div>
+								<p className="font-serif text-[17px] text-white italic mb-2">&ldquo;{cert.tagline}&rdquo;</p>
+								<p className="font-sans text-[13px] text-[#888] leading-[1.6] mb-4">{cert.description}</p>
+								<div className="flex flex-wrap gap-1.5 mb-5">
+									{cert.topics.map((t) => (
+										<span
+											key={t}
+											className="px-2 py-0.5 rounded text-[11px] font-sans font-medium border"
+											style={{
+												color: cert.accent,
+												borderColor: `${cert.accent}33`,
+												backgroundColor: `${cert.accent}0D`,
+											}}
+										>
+											{t}
+										</span>
+									))}
+								</div>
+								<Link
+									href={`/demo/classic?level=${cert.level}`}
+									className="block text-center py-2.5 rounded-lg font-sans text-sm font-semibold transition-all border"
+									style={{
+										color: cert.accent,
+										borderColor: `${cert.accent}40`,
+									}}
+								>
+									{cert.cta} &rarr;
+								</Link>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			{/* OSCP VM Labs callout */}
+			<section className="py-16 px-6 border-t border-[#1a1a1a] bg-[#080808]">
+				<div className="max-w-[720px] mx-auto">
+					<div className="rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/5 p-8">
+						<div className="flex items-center gap-3 mb-4">
+							<span className="w-10 h-10 rounded-lg bg-[#ef4444] flex items-center justify-center font-mono text-sm font-bold text-white">VM</span>
+							<div>
+								<h3 className="font-sans text-[17px] font-bold text-white">Interactive VM Labs for OSCP</h3>
+								<span className="font-sans text-xs text-[#ef4444]">Coming soon</span>
+							</div>
 						</div>
-						<div className="font-sans text-[15px] font-semibold text-white mb-1 group-hover:text-[#4f9cf7] transition-colors">
-							Socratic tutor demo
+						<p className="font-sans text-[14px] text-[#ccc] leading-[1.7] mb-4">
+							Real vulnerable machines, not simulations. Spin up a fresh VM, enumerate services, exploit vulnerabilities, escalate privileges — with an AI tutor guiding your methodology in real time. Each lab auto-destructs after 2 hours.
+						</p>
+						<div className="flex flex-wrap gap-3">
+							<span className="font-mono text-xs text-[#ef4444]/80 px-2 py-1 rounded bg-[#ef4444]/10">nmap &middot; gobuster &middot; Burp Suite</span>
+							<span className="font-mono text-xs text-[#ef4444]/80 px-2 py-1 rounded bg-[#ef4444]/10">linpeas &middot; winPEAS &middot; BloodHound</span>
+							<span className="font-mono text-xs text-[#ef4444]/80 px-2 py-1 rounded bg-[#ef4444]/10">Impacket &middot; Chisel &middot; Ligolo</span>
 						</div>
-						<div className="font-sans text-sm text-[#888] leading-[1.5]">
-							25-minute diagnostic session with pre-built problems, SVG diagrams, and a tutor handoff artifact at the end.
-						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* How it works */}
+			<section className="py-20 px-6 border-t border-[#1a1a1a]">
+				<div className="max-w-[680px] mx-auto">
+					<h2 className="font-serif text-[36px] font-bold text-white tracking-[-0.02em] mb-12 text-center">
+						How it works
+					</h2>
+					<div className="grid gap-8">
+						{HOW_IT_WORKS.map((step) => (
+							<div key={step.step} className="flex items-start gap-5">
+								<span className="font-mono text-[13px] font-bold text-[#F5B800] mt-1 shrink-0">{step.step}</span>
+								<div>
+									<h3 className="font-sans text-[15px] font-semibold text-white mb-1">{step.title}</h3>
+									<p className="font-sans text-[14px] text-[#888] leading-[1.6]">{step.description}</p>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			{/* Disruption pitch */}
+			<section className="py-20 px-6 border-t border-[#1a1a1a] bg-[#080808]">
+				<div className="max-w-[680px] mx-auto">
+					<h2 className="font-serif text-[36px] font-bold text-white tracking-[-0.02em] mb-6 text-center">
+						Why this matters
+					</h2>
+					<div className="space-y-6 font-serif text-[18px] text-[#ccc] leading-[1.7]">
+						<p>
+							The certification industry charges thousands for exams and offers{" "}
+							<span className="text-white font-semibold">zero adaptive learning</span>. ISC2 charges $599 for the CISSP. OffSec charges $1,749 for the OSCP. Fail and pay again.
+						</p>
+						<p>
+							Meanwhile, the &ldquo;prep&rdquo; market is stuck in 2010:{" "}
+							<span className="text-white font-semibold">static question banks, 40-hour video courses, and flashcard apps</span> that teach you to recognize patterns instead of think critically.
+						</p>
+						<p>
+							We&rsquo;re building the first{" "}
+							<span className="text-[#F5B800] font-semibold">AI-native certification platform</span>. Magister doesn&rsquo;t quiz you — it{" "}
+							<em>teaches</em> you, using the Socratic method powered by Claude. It adapts to your specific knowledge gaps. It produces diagnostic reports a human tutor would charge $200/hr to create.
+						</p>
+						<p>
+							Three certifications to start. <span className="text-white font-semibold">CISSP, OSCP, and Claude CCA</span> — the credentials that actually matter in security and AI. More coming.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			{/* CTA */}
+			<section className="py-24 px-6 border-t border-[#1a1a1a]">
+				<div className="max-w-[680px] mx-auto text-center">
+					<h2 className="font-serif text-[44px] font-bold text-white tracking-[-0.02em] mb-4">
+						Stop memorizing.<br />Start understanding.
+					</h2>
+					<p className="font-sans text-[15px] text-[#888] mb-8 max-w-[420px] mx-auto">
+						Pick a cert and try a session. It takes 5 minutes to see why this is different.
+					</p>
+					<Link
+						href="/demo/classic"
+						className="inline-block px-10 py-4 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
+					>
+						Start a free session
 					</Link>
 				</div>
+			</section>
 
-				<BodyText>
-					If you&rsquo;re a district leader running a tutoring program, a researcher studying hybrid models, or a teacher doing intervention blocks and want to talk — reach out.
-				</BodyText>
-
-				{/* ── Sources ── */}
-				<SourcesSection sources={SOURCES} />
-			</div>
+			{/* Footer */}
+			<footer className="py-10 px-6 border-t border-[#1a1a1a]">
+				<div className="max-w-[1100px] mx-auto flex items-center justify-between">
+					<div className="flex items-center gap-2">
+						<span className="font-sans text-[12px] font-bold text-[#F5B800] tracking-wider">XORS</span>
+						<span className="font-sans text-[12px] text-[#333]">/</span>
+						<span className="font-sans text-[12px] text-[#555]">Magister</span>
+					</div>
+					<span className="font-sans text-[12px] text-[#555]">Software done right multiplies what humans can do</span>
+				</div>
+			</footer>
 		</main>
-	)
-}
-
-/* ──────────────────── Components ──────────────────── */
-
-function Divider() {
-	return <div className="w-12 h-0.5 bg-[#4f9cf7] my-10" />
-}
-
-function BodyText({ children }: { children: React.ReactNode }) {
-	return (
-		<p className="font-serif text-lg leading-[1.75] text-[#e8e8e8] mb-5">
-			{children}
-		</p>
-	)
-}
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-	return (
-		<h2 className="font-serif text-[26px] font-semibold text-white mt-12 mb-4 tracking-[-0.01em]">
-			{children}
-		</h2>
-	)
-}
-
-function Cite({ id }: { id: number }) {
-	return (
-		<sup className="font-sans text-[11px] text-[#4f9cf7] ml-[1px] cursor-help not-italic">
-			[{id}]
-		</sup>
-	)
-}
-
-function StatRow({ stats }: { stats: typeof STATS }) {
-	return (
-		<div className="grid grid-cols-3 max-sm:grid-cols-1 gap-3 my-8">
-			{stats.map((stat) => (
-				<div key={stat.value} className="bg-[#141414] border border-[#2a2a2a] rounded-[10px] px-4 py-5 text-center">
-					<div className={`font-sans text-[32px] font-bold leading-none mb-1.5 ${stat.color}`}>
-						{stat.value}
-					</div>
-					<div className="font-sans text-xs text-[#888] leading-[1.4] font-medium whitespace-pre-line">
-						{stat.label}
-					</div>
-				</div>
-			))}
-		</div>
-	)
-}
-
-function ChartSection({
-	title,
-	subtitle,
-	source,
-	children,
-}: {
-	title: string
-	subtitle: string
-	source?: string
-	children: React.ReactNode
-}) {
-	return (
-		<div className="bg-[#141414] border border-[#2a2a2a] rounded-xl px-6 py-7 my-8">
-			<div className="font-sans text-sm font-semibold text-[#e8e8e8] mb-1">{title}</div>
-			<div className="font-sans text-xs text-[#555] mb-5">{subtitle}</div>
-			{children}
-			{source && (
-				<div className="font-sans text-[11px] text-[#555] mt-9">{source}</div>
-			)}
-		</div>
-	)
-}
-
-type BarData = {
-	label: string
-	value: string
-	height: string
-	gradient: string
-	delay: string
-	isTarget?: boolean
-}
-
-function BarChart({ bars, height }: { bars: BarData[]; height: string }) {
-	return (
-		<div className="flex items-end gap-2 pb-8 relative" style={{ height }}>
-			{bars.map((bar) => (
-				<div key={bar.label} className="flex-1 flex flex-col items-center relative h-full justify-end">
-					<div
-						className={`w-full max-w-16 rounded-t-md bg-gradient-to-b ${bar.gradient} relative animate-bar-grow ${bar.delay}`}
-						style={{ height: bar.height }}
-					>
-						<span className="font-sans text-[13px] font-bold text-white absolute -top-[22px] left-1/2 -translate-x-1/2 whitespace-nowrap">
-							{bar.value}
-						</span>
-					</div>
-					<span className="font-sans text-[11px] text-[#888] text-center absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap">
-						{bar.label}
-					</span>
-					{bar.isTarget && (
-						<span className="font-sans text-[10px] text-green-500 absolute -bottom-[42px] left-1/2 -translate-x-1/2 whitespace-nowrap">
-							(target)
-						</span>
-					)}
-				</div>
-			))}
-		</div>
-	)
-}
-
-function ComparisonTable({ rows }: { rows: typeof COMPARISON_ROWS }) {
-	const statusStyles = {
-		yes: "text-green-500",
-		no: "text-red-500",
-		partial: "text-amber-500",
-		gap: "text-[#4f9cf7] font-semibold",
-	}
-
-	const statusPrefix = {
-		yes: "✓ ",
-		no: "✗ ",
-		partial: "~ ",
-		gap: "",
-	}
-
-	return (
-		<div className="overflow-x-auto">
-			<table className="w-full border-collapse font-sans text-sm">
-				<thead>
-					<tr>
-						<th className="text-left px-3 py-2.5 font-semibold text-xs text-[#555] uppercase tracking-[0.05em] border-b border-[#2a2a2a]">Capability</th>
-						<th className="text-left px-3 py-2.5 font-semibold text-xs text-[#555] uppercase tracking-[0.05em] border-b border-[#2a2a2a]">ALEKS (1994)</th>
-						<th className="text-left px-3 py-2.5 font-semibold text-xs text-[#555] uppercase tracking-[0.05em] border-b border-[#2a2a2a]">Khanmigo (2024)</th>
-						<th className="text-left px-3 py-2.5 font-semibold text-xs text-[#555] uppercase tracking-[0.05em] border-b border-[#2a2a2a]">What&rsquo;s Needed</th>
-					</tr>
-				</thead>
-				<tbody>
-					{rows.map((row, i) => (
-						<tr key={row.feature}>
-							<td className={`px-3 py-3 text-[#e8e8e8] font-medium min-w-[130px] ${i < rows.length - 1 ? "border-b border-[#2a2a2a]" : ""}`}>
-								{row.feature}
-							</td>
-							<td className={`px-3 py-3 text-[#888] align-top ${i < rows.length - 1 ? "border-b border-[#2a2a2a]" : ""}`}>
-								<span className={statusStyles[row.aleks.status as keyof typeof statusStyles]}>
-									{statusPrefix[row.aleks.status as keyof typeof statusPrefix]}{row.aleks.text}
-								</span>
-							</td>
-							<td className={`px-3 py-3 text-[#888] align-top ${i < rows.length - 1 ? "border-b border-[#2a2a2a]" : ""}`}>
-								<span className={statusStyles[row.khanmigo.status as keyof typeof statusStyles]}>
-									{statusPrefix[row.khanmigo.status as keyof typeof statusPrefix]}{row.khanmigo.text}
-								</span>
-							</td>
-							<td className={`px-3 py-3 text-[#888] align-top ${i < rows.length - 1 ? "border-b border-[#2a2a2a]" : ""}`}>
-								<span className={statusStyles[row.needed.status as keyof typeof statusStyles]}>
-									{statusPrefix[row.needed.status as keyof typeof statusPrefix]}{row.needed.text}
-								</span>
-							</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
-	)
-}
-
-function BulletList({ items }: { items: string[] }) {
-	return (
-		<ul className="list-none p-0 my-5">
-			{items.map((item) => (
-				<li
-					key={item.slice(0, 30)}
-					className="relative pl-6 mb-2.5 font-sans text-[15px] leading-[1.5] text-[#e8e8e8] before:content-[''] before:absolute before:left-0 before:top-2 before:w-2 before:h-2 before:rounded-sm before:bg-[#4f9cf7]"
-					dangerouslySetInnerHTML={{
-						__html: item
-							.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-					}}
-				/>
-			))}
-		</ul>
-	)
-}
-
-function PitchBlock({ children }: { children: React.ReactNode }) {
-	return (
-		<blockquote className="bg-gradient-to-br from-[rgba(79,156,247,0.06)] to-[rgba(20,184,166,0.04)] border-l-[3px] border-[#4f9cf7] rounded-r-[10px] px-6 py-6 my-9 italic text-[#e8e8e8] leading-[1.7] font-serif text-lg">
-			{children}
-		</blockquote>
-	)
-}
-
-function SourcesSection({ sources }: { sources: typeof SOURCES }) {
-	return (
-		<div className="mt-14 pt-6 border-t border-[#2a2a2a]">
-			<h3 className="font-sans text-[13px] font-semibold text-[#555] uppercase tracking-[0.06em] mb-3">
-				Sources
-			</h3>
-			<div className="font-sans text-xs text-[#555] leading-8">
-				{sources.map((s) => (
-					<div key={s.id}>
-						[{s.id}] {s.text}
-						{s.link && (
-							<a href={s.link} target="_blank" rel="noopener noreferrer" className="text-[#888] hover:text-[#4f9cf7] no-underline transition-colors">
-								{s.linkText}
-							</a>
-						)}
-						{"extra" in s && s.extra}
-					</div>
-				))}
-			</div>
-		</div>
 	)
 }
