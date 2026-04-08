@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
@@ -46,6 +46,14 @@ const LEVEL_CONFIG = {
 } as const
 
 export default function DemoPage() {
+	return (
+		<Suspense fallback={<main className="min-h-dvh bg-[#0a0a0a] flex items-center justify-center"><div className="font-sans text-[#555] animate-pulse">Loading...</div></main>}>
+			<DemoPageInner />
+		</Suspense>
+	)
+}
+
+function DemoPageInner() {
 	const router = useRouter()
 	const searchParams = useSearchParams()
 	const [educationLevel, setEducationLevel] = useState<EducationLevel>("cissp")
