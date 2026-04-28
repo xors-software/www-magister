@@ -243,7 +243,7 @@ export default function QuizRunner() {
 					{question.choices.map((c) => {
 						const isSelected = selected === c.key;
 						const isCorrectChoice = reveal && reveal.correct === c.key;
-						const isWrongChoice = reveal && reveal.selected === c.key && !reveal.isCorrect;
+						const isWrongChoice = reveal && selected === c.key && !reveal.isCorrect;
 						let borderColor = "#1a1a1a";
 						let bg = "#111";
 						let labelColor = "#555";
