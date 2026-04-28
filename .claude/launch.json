@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "magister-web",
+      "runtimeExecutable": "/Users/the-x-machine/.bun/bin/bun",
+      "runtimeArgs": ["run", "dev", "--filter", "web"],
+      "port": 3000
+    },
+    {
+      "name": "magister-server",
+      "runtimeExecutable": "/Users/the-x-machine/.bun/bin/bun",
+      "runtimeArgs": ["run", "dev", "--filter", "server"],
+      "port": 3001
+    }
+  ]
+}

@@ -18,6 +18,7 @@ const CERTIFICATIONS = [
 		stat: "8 domains",
 		cta: "Practice CISSP",
 		level: "cissp" as const,
+		href: "/demo/classic?level=cissp",
 	},
 	{
 		name: "OSCP",
@@ -29,25 +30,27 @@ const CERTIFICATIONS = [
 		stat: "7 skill areas",
 		cta: "Practice OSCP",
 		level: "oscp" as const,
+		href: "/demo/classic?level=oscp",
 		badge: "VM Labs coming soon",
 	},
 	{
-		name: "Claude CCA",
+		name: "Claude Code Cert",
 		accent: "#F5B800",
-		price: "$250",
-		tagline: "Build production-grade AI systems",
-		description: "The first AI-native prep for Anthropic's Claude Certified Architect exam. Design real applications with tool use, MCP, agent orchestration, and safety guardrails.",
-		topics: ["API Fundamentals", "Prompt Engineering", "Tool Use", "MCP", "Agent Design", "Architecture", "Safety"],
-		stat: "7 topic areas",
-		cta: "Practice Claude CCA",
+		price: "$200",
+		tagline: "Pass the Anthropic Claude Code certification",
+		description: "Multiple-choice drills built around the six official exam scenarios, with a full mock exam, per-domain weakness analytics, and the Socratic tutor when you need to go deeper.",
+		topics: ["Agentic Architecture", "Tool Design & MCP", "Claude Code Workflows", "Prompt Engineering", "Context Management", "6 Scenarios", "5 Domains"],
+		stat: "5 domains · 6 scenarios",
+		cta: "Drill the exam",
 		level: "claude-cert" as const,
-		badge: "First-of-its-kind",
+		href: "/quiz",
+		badge: "Mock exam mode",
 	},
 ]
 
 const BROKEN_THINGS = [
 	{
-		stat: "$599–$1,749",
+		stat: "$200–$1,749",
 		title: "Per exam attempt",
 		description: "Fail once and you're paying again. Most prep tools are another $50–300/mo on top of that.",
 	},
@@ -72,12 +75,12 @@ const HOW_IT_WORKS = [
 	{
 		step: "01",
 		title: "Pick your certification",
-		description: "CISSP, OSCP, or Claude CCA. Choose a specific domain or skill area to drill.",
+		description: "CISSP, OSCP, or the Anthropic Claude Code cert. Choose a specific domain or skill area to drill.",
 	},
 	{
 		step: "02",
 		title: "Face real scenarios",
-		description: "No multiple choice. You get realistic scenarios and must explain your reasoning — like the real exam.",
+		description: "Realistic scenarios where you reason through your answer — like the real exam, with the gotchas and trick distractors baked in.",
 	},
 	{
 		step: "03",
@@ -87,7 +90,7 @@ const HOW_IT_WORKS = [
 	{
 		step: "04",
 		title: "See your knowledge map",
-		description: "Every session produces a diagnostic handoff showing your gaps, misconceptions, and exactly what to study next.",
+		description: "Every session produces a per-domain breakdown showing your gaps, misconceptions, and exactly what to study next.",
 	},
 ]
 
@@ -100,14 +103,18 @@ export default function Home() {
 					<div className="flex items-center gap-3">
 						<span className="font-sans text-[13px] font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
 						<span className="text-[#333] font-sans text-xs">/</span>
-						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Magister</span>
+						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</div>
-					<Link
-						href="/demo/classic"
-						className="font-sans text-sm font-medium px-4 py-1.5 rounded-lg bg-[#F5B800] text-black hover:bg-[#e0a800] transition-colors"
-					>
-						Try the demo
-					</Link>
+					<div className="flex items-center gap-4">
+						<Link href="/scenarios" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Scenarios</Link>
+						<Link href="/dashboard" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Dashboard</Link>
+						<Link
+							href="/quiz"
+							className="font-sans text-sm font-medium px-4 py-1.5 rounded-lg bg-[#F5B800] text-black hover:bg-[#e0a800] transition-colors"
+						>
+							Try the demo
+						</Link>
+					</div>
 				</div>
 			</nav>
 
@@ -117,24 +124,24 @@ export default function Home() {
 					<div className="inline-flex gap-2 mb-8">
 						<span className="px-2.5 py-1 rounded-full bg-[#4f9cf7]/10 border border-[#4f9cf7]/30 font-sans text-xs font-medium text-[#4f9cf7]">CISSP</span>
 						<span className="px-2.5 py-1 rounded-full bg-[#ef4444]/10 border border-[#ef4444]/30 font-sans text-xs font-medium text-[#ef4444]">OSCP</span>
-						<span className="px-2.5 py-1 rounded-full bg-[#F5B800]/10 border border-[#F5B800]/30 font-sans text-xs font-medium text-[#F5B800]">Claude CCA</span>
+						<span className="px-2.5 py-1 rounded-full bg-[#F5B800]/10 border border-[#F5B800]/30 font-sans text-xs font-medium text-[#F5B800]">Claude Code Cert</span>
 					</div>
 					<h1 className="font-serif text-[48px] sm:text-[64px] font-bold text-white leading-[1.05] tracking-[-0.03em] mb-6">
 						Certification prep<br />is broken.
 					</h1>
 					<p className="font-serif text-[21px] text-[#999] leading-[1.6] mb-4 max-w-[560px] mx-auto">
-						Exams cost $599–$1,749 per attempt. Prep tools are flashcard apps that teach memorization. Nobody offers adaptive, AI-native tutoring.
+						Exams cost $200–$1,749 per attempt. Prep tools are flashcard apps that teach memorization. Nobody offers adaptive, AI-native tutoring.
 					</p>
 					<p className="font-serif text-[21px] text-white leading-[1.6] mb-10 max-w-[560px] mx-auto">
 						Until now.
 					</p>
 					<Link
-						href="/demo/classic"
+						href="/quiz"
 						className="inline-block px-8 py-4 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
 					>
 						Start a free session
 					</Link>
-					<p className="mt-4 font-sans text-xs text-[#555]">No signup required. 25-minute interactive session.</p>
+					<p className="mt-4 font-sans text-xs text-[#555]">No signup required. Drill the exam, see your gaps, fix them.</p>
 				</div>
 			</section>
 
@@ -165,7 +172,7 @@ export default function Home() {
 					<div className="text-center mb-14">
 						<h2 className="font-serif text-[36px] font-bold text-white tracking-[-0.02em] mb-3">Three certs. One AI tutor.</h2>
 						<p className="font-sans text-[15px] text-[#666] max-w-[500px] mx-auto">
-							Magister uses Claude to deliver Socratic, scenario-based prep that adapts to your knowledge gaps in real time.
+							Reps uses Claude to deliver Socratic, scenario-based prep that adapts to your knowledge gaps in real time.
 						</p>
 					</div>
 					<div className="grid md:grid-cols-3 gap-4">
@@ -212,7 +219,7 @@ export default function Home() {
 									))}
 								</div>
 								<Link
-									href={`/demo/classic?level=${cert.level}`}
+									href={cert.href}
 									className="block text-center py-2.5 rounded-lg font-sans text-sm font-semibold transition-all border"
 									style={{
 										color: cert.accent,
@@ -279,7 +286,7 @@ export default function Home() {
 					<div className="space-y-6 font-serif text-[18px] text-[#ccc] leading-[1.7]">
 						<p>
 							The certification industry charges thousands for exams and offers{" "}
-							<span className="text-white font-semibold">zero adaptive learning</span>. ISC2 charges $599 for the CISSP. OffSec charges $1,749 for the OSCP. Fail and pay again.
+							<span className="text-white font-semibold">zero adaptive learning</span>. ISC2 charges $749 for the CISSP. OffSec charges $1,749 for the OSCP. Fail and pay again.
 						</p>
 						<p>
 							Meanwhile, the &ldquo;prep&rdquo; market is stuck in 2010:{" "}
@@ -287,11 +294,11 @@ export default function Home() {
 						</p>
 						<p>
 							We&rsquo;re building the first{" "}
-							<span className="text-[#F5B800] font-semibold">AI-native certification platform</span>. Magister doesn&rsquo;t quiz you — it{" "}
+							<span className="text-[#F5B800] font-semibold">AI-native certification platform</span>. Reps doesn&rsquo;t quiz you — it{" "}
 							<em>teaches</em> you, using the Socratic method powered by Claude. It adapts to your specific knowledge gaps. It produces diagnostic reports a human tutor would charge $200/hr to create.
 						</p>
 						<p>
-							Three certifications to start. <span className="text-white font-semibold">CISSP, OSCP, and Claude CCA</span> — the credentials that actually matter in security and AI. More coming.
+							Three certifications to start. <span className="text-white font-semibold">CISSP, OSCP, and the Anthropic Claude Code certification</span> — the credentials that actually matter in security and AI. More coming.
 						</p>
 					</div>
 				</div>
@@ -307,7 +314,7 @@ export default function Home() {
 						Pick a cert and try a session. It takes 5 minutes to see why this is different.
 					</p>
 					<Link
-						href="/demo/classic"
+						href="/quiz"
 						className="inline-block px-10 py-4 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
 					>
 						Start a free session
@@ -321,7 +328,7 @@ export default function Home() {
 					<div className="flex items-center gap-2">
 						<span className="font-sans text-[12px] font-bold text-[#F5B800] tracking-wider">XORS</span>
 						<span className="font-sans text-[12px] text-[#333]">/</span>
-						<span className="font-sans text-[12px] text-[#555]">Magister</span>
+						<span className="font-sans text-[12px] text-[#555]">Reps</span>
 					</div>
 					<span className="font-sans text-[12px] text-[#555]">Software done right multiplies what humans can do</span>
 				</div>

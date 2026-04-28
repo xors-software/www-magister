@@ -1,5 +1,6 @@
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
+import { certRoutes } from "./routes/cert";
 import { coursesRoutes } from "./routes/courses";
 import { demoSessionsRoutes } from "./routes/demo-sessions";
 import { healthRoutes } from "./routes/health";
@@ -24,9 +25,9 @@ const app = new Elysia()
 		swagger({
 			documentation: {
 				info: {
-					title: "Magister API",
-					version: "2.0.0",
-					description: "Course-based AI tutoring platform",
+					title: "Reps API",
+					version: "3.0.0",
+					description: "Anthropic Claude Code certification practice engine",
 				},
 			},
 		}),
@@ -36,6 +37,7 @@ const app = new Elysia()
 	.use(coursesRoutes)
 	.use(sessionsRoutes)
 	.use(demoSessionsRoutes)
+	.use(certRoutes)
 	.listen(process.env.PORT || 3001);
 
 console.log(

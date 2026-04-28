@@ -7,7 +7,7 @@ import { NewsreaderFont, DMSansFont, DMMonoFont } from "@/fonts/fonts"
 import { Toaster } from "@/components/toasts/Toaster"
 
 export const metadata: Metadata = {
-	title: `${APP_CONFIG.NAME} — AI-Powered Certification Prep`,
+	title: `${APP_CONFIG.NAME} — Pass the Anthropic Claude Code certification`,
 	description: APP_CONFIG.DESCRIPTION,
 	openGraph: {
 		title: APP_CONFIG.NAME,
