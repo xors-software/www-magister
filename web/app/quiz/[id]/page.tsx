@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { apiFetch, fetchMe } from "@/lib/auth";
 
 type Choice = { key: "A" | "B" | "C" | "D"; text: string };
 type PublicQuestion = {
@@ -58,9 +57,15 @@ export default function QuizRunner() {
 	const startTimeRef = useRef<number>(Date.now());
 
 	useEffect(() => {
-		fetch(`${API}/cert/quiz/${quizId}`)
-			.then((r) => r.json())
-			.then((data) => {
+		(async () => {
+			const me = await fetchMe();
+			if (!me) {
+				router.push(`/login?next=/quiz/${quizId}`);
+				return;
+			}
+			try {
+				const res = await apiFetch(`/cert/quiz/${quizId}`);
+				const data = await res.json();
 				if (data.error) {
 					setError(data.error);
 					return;
@@ -71,20 +76,29 @@ export default function QuizRunner() {
 				setConfig(data.config);
 				setTimeLimitSec(data.timeLimitSeconds || null);
 				setStartedAt(data.startedAt);
-			})
-			.catch(() => setError("Could not load quiz."));
-	}, [quizId]);
+			} catch {
+				setError("Could not load quiz.");
+			}
+		})();
+	}, [quizId, router]);
 
 	useEffect(() => {
 		if (!timeLimitSec || !startedAt) return;
 		const startMs = new Date(startedAt).getTime();
 		const tick = () => {
 			const elapsed = Math.floor((Date.now() - startMs) / 1000);
-			setTimeLeftSec(Math.max(0, timeLimitSec - elapsed));
+			const remaining = Math.max(0, timeLimitSec - elapsed);
+			setTimeLeftSec(remaining);
+			if (remaining <= 0) {
+				// Time's up — finalize the quiz with whatever was answered.
+				clearInterval(id);
+				finish().catch(() => {});
+			}
 		};
 		tick();
 		const id = setInterval(tick, 1000);
 		return () => clearInterval(id);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [timeLimitSec, startedAt]);
 
 	useEffect(() => {
@@ -125,9 +139,8 @@ export default function QuizRunner() {
 		setSubmitting(true);
 		try {
 			const timeMs = Date.now() - startTimeRef.current;
-			const res = await fetch(`${API}/cert/quiz/${quizId}/answer`, {
+			const res = await apiFetch(`/cert/quiz/${quizId}/answer`, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ selected, timeMs }),
 			});
 			const data = await res.json();
@@ -150,8 +163,7 @@ export default function QuizRunner() {
 	}
 
 	async function finish() {
-		const res = await fetch(`${API}/cert/quiz/${quizId}/complete`, { method: "POST" });
-		await res.json();
+		await apiFetch(`/cert/quiz/${quizId}/complete`, { method: "POST" });
 		router.push(`/quiz/${quizId}/results`);
 	}
 

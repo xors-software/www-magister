@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { apiFetch, fetchMe } from "@/lib/auth";
 
 type DomainScore = { domain: string; correct: number; total: number; percent: number };
 type ScenarioScore = { scenario: string; correct: number; total: number; percent: number };
@@ -66,18 +65,27 @@ function colorFor(pct: number) {
 
 export default function ResultsPage() {
 	const params = useParams<{ id: string }>();
+	const router = useRouter();
 	const [results, setResults] = useState<Results | null>(null);
 	const [error, setError] = useState("");
 
 	useEffect(() => {
-		fetch(`${API}/cert/quiz/${params.id}/results`)
-			.then((r) => r.json())
-			.then((data) => {
+		(async () => {
+			const me = await fetchMe();
+			if (!me) {
+				router.push(`/login?next=/quiz/${params.id}/results`);
+				return;
+			}
+			try {
+				const res = await apiFetch(`/cert/quiz/${params.id}/results`);
+				const data = await res.json();
 				if (data.error) setError(data.error);
 				else setResults(data);
-			})
-			.catch(() => setError("Failed to load results."));
-	}, [params.id]);
+			} catch {
+				setError("Failed to load results.");
+			}
+		})();
+	}, [params.id, router]);
 
 	if (error) {
 		return (

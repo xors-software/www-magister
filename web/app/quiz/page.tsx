@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { apiFetch, fetchMe, logout, type User } from "@/lib/auth";
 
 type Scenario = { id: string; label: string; tagline: string; questionCount: number };
 type Domain = { id: string; label: string; questionCount: number };
@@ -28,6 +27,8 @@ const DOMAIN_ACCENT: Record<string, string> = {
 
 export default function QuizLauncher() {
 	const router = useRouter();
+	const [me, setMe] = useState<User | null>(null);
+	const [authChecked, setAuthChecked] = useState(false);
 	const [mode, setMode] = useState<"quick" | "exam" | "scenario" | "domain" | "gotcha">("quick");
 	const [scenarios, setScenarios] = useState<Scenario[]>([]);
 	const [domains, setDomains] = useState<Domain[]>([]);
@@ -38,9 +39,21 @@ export default function QuizLauncher() {
 	const [error, setError] = useState("");
 
 	useEffect(() => {
-		fetch(`${API}/cert/scenarios`).then((r) => r.json()).then(setScenarios).catch(() => {});
-		fetch(`${API}/cert/domains`).then((r) => r.json()).then(setDomains).catch(() => {});
-	}, []);
+		fetchMe().then((user) => {
+			if (!user) {
+				router.push("/login?next=/quiz");
+				return;
+			}
+			setMe(user);
+			setAuthChecked(true);
+		});
+	}, [router]);
+
+	useEffect(() => {
+		if (!authChecked) return;
+		apiFetch("/cert/scenarios").then((r) => r.json()).then(setScenarios).catch(() => {});
+		apiFetch("/cert/domains").then((r) => r.json()).then(setDomains).catch(() => {});
+	}, [authChecked]);
 
 	async function startQuiz() {
 		setLoading(true);
@@ -50,9 +63,8 @@ export default function QuizLauncher() {
 			if (mode === "exam") body.count = 50;
 			if (mode === "scenario") body.scenario = scenario;
 			if (mode === "domain") body.domain = domain;
-			const res = await fetch(`${API}/cert/quiz`, {
+			const res = await apiFetch("/cert/quiz", {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(body),
 			});
 			const data = await res.json();
@@ -68,6 +80,11 @@ export default function QuizLauncher() {
 		}
 	}
 
+	async function handleLogout() {
+		await logout();
+		router.push("/login");
+	}
+
 	const modes: { id: typeof mode; label: string; sub: string; recommendedCount?: number }[] = [
 		{ id: "quick", label: "Quick Quiz", sub: "10 random questions across all scenarios. Warm-up.", recommendedCount: 10 },
 		{ id: "exam", label: "Mock Exam", sub: "50 questions, weighted by domain, 120-min timer." },
@@ -76,16 +93,32 @@ export default function QuizLauncher() {
 		{ id: "gotcha", label: "Gotcha Drill", sub: "Anti-patterns the exam likes to slip in as distractors.", recommendedCount: 10 },
 	];
 
+	if (!authChecked) {
+		return (
+			<main className="min-h-dvh bg-[#0a0a0a] flex items-center justify-center">
+				<div className="font-sans text-[#555] animate-pulse">Checking session…</div>
+			</main>
+		);
+	}
+
 	return (
 		<main className="min-h-dvh bg-[#0a0a0a] text-[#e8e8e8] flex items-center justify-center px-4 py-10">
 			<div className="w-full max-w-[640px]">
-				<Link href="/" className="block mb-8">
-					<div className="flex items-center gap-2">
-						<span className="font-sans text-[13px] font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
-						<span className="text-[#333] font-sans text-xs">/</span>
-						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
-					</div>
-				</Link>
+				<div className="flex items-center justify-between mb-8">
+					<Link href="/" className="block">
+						<div className="flex items-center gap-2">
+							<span className="font-sans text-[13px] font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
+							<span className="text-[#333] font-sans text-xs">/</span>
+							<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
+						</div>
+					</Link>
+					{me && (
+						<div className="flex items-center gap-3">
+							<span className="font-sans text-[12px] text-[#666]">{me.displayName || me.email}</span>
+							<button type="button" onClick={handleLogout} className="font-sans text-[12px] text-[#555] hover:text-white">Sign out</button>
+						</div>
+					)}
+				</div>
 
 				<h1 className="font-serif text-[32px] font-bold text-white leading-[1.2] tracking-[-0.02em] mb-2">
 					Pick a drill

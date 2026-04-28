@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { apiFetch, fetchMe, logout, type User } from "@/lib/auth";
 
 type DomainScore = { domain: string; correct: number; total: number; percent: number };
 type ScenarioScore = { scenario: string; correct: number; total: number; percent: number };
@@ -44,14 +44,28 @@ function colorFor(pct: number) {
 }
 
 export default function Dashboard() {
+	const router = useRouter();
 	const [stats, setStats] = useState<Stats | null>(null);
+	const [me, setMe] = useState<User | null>(null);
 
 	useEffect(() => {
-		fetch(`${API}/cert/stats`)
-			.then((r) => r.json())
-			.then(setStats)
-			.catch(() => {});
-	}, []);
+		(async () => {
+			const user = await fetchMe();
+			if (!user) {
+				router.push("/login?next=/dashboard");
+				return;
+			}
+			setMe(user);
+			const res = await apiFetch("/cert/stats");
+			const data = await res.json();
+			if (!data.error) setStats(data);
+		})();
+	}, [router]);
+
+	async function handleLogout() {
+		await logout();
+		router.push("/login");
+	}
 
 	if (!stats) {
 		return (
@@ -74,9 +88,16 @@ export default function Dashboard() {
 						<span className="text-[#333] font-sans text-xs">/</span>
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</Link>
-					<div className="flex gap-3">
+					<div className="flex gap-3 items-center">
 						<Link href="/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">New drill</Link>
 						<Link href="/scenarios" className="font-sans text-[13px] text-[#888] hover:text-white">Scenarios</Link>
+						{me && (
+							<>
+								<span className="font-sans text-[12px] text-[#444]">·</span>
+								<span className="font-sans text-[12px] text-[#666]">{me.displayName || me.email}</span>
+								<button type="button" onClick={handleLogout} className="font-sans text-[12px] text-[#555] hover:text-white">Sign out</button>
+							</>
+						)}
 					</div>
 				</div>
 			</nav>

@@ -1,16 +1,17 @@
 import { Elysia, t } from "elysia";
+import { getUserBySession, readSessionToken } from "../lib/auth";
 import {
 	advanceQuiz,
-	aggregateAllQuizzes,
+	aggregateForUser,
 	completeQuiz,
 	computeResults,
 	createQuiz,
 	getQuiz,
 	recordAnswer,
+	resolveQuestion,
 } from "../lib/cert-quizzes";
 import {
 	CERT_QUESTION_BANK,
-	getQuestionById,
 	getQuestionsByDomain,
 	getQuestionsByScenario,
 	summarizeQuestion,
@@ -20,13 +21,12 @@ import {
 	SCENARIO_LABELS,
 	SCENARIO_TAGLINES,
 	type CertDomain,
+	type CertQuestion,
 	type ScenarioId,
 } from "../lib/cert-types";
+import { generateAdaptiveQuestionsAsync } from "../lib/cert-generation";
 
-// Public-facing question shape (no correct answer / explanation until graded).
-function publicQuestion(id: string) {
-	const q = getQuestionById(id);
-	if (!q) return null;
+function publicQuestion(q: CertQuestion) {
 	return {
 		id: q.id,
 		scenario: q.scenario,
@@ -41,12 +41,9 @@ function publicQuestion(id: string) {
 	};
 }
 
-// Reveal-mode question shape (after answer submitted).
-function revealQuestion(id: string, selected: "A" | "B" | "C" | "D" | null) {
-	const q = getQuestionById(id);
-	if (!q) return null;
+function revealQuestion(q: CertQuestion, selected: "A" | "B" | "C" | "D" | null) {
 	return {
-		...publicQuestion(id),
+		...publicQuestion(q),
 		correct: q.correct,
 		explanation: q.explanation,
 		distractorRationales: q.distractorRationales,
@@ -56,6 +53,13 @@ function revealQuestion(id: string, selected: "A" | "B" | "C" | "D" | null) {
 }
 
 export const certRoutes = new Elysia({ prefix: "/cert" })
+	// Resolve current user via session cookie. Routes that need auth check
+	// `userId` and 401 if missing.
+	.derive(async ({ request }) => {
+		const token = readSessionToken(request.headers);
+		const user = await getUserBySession(token);
+		return { userId: user?.id ?? null, user };
+	})
 	.get("/scenarios", () => {
 		const scenarios: ScenarioId[] = [
 			"customer-support",
@@ -83,7 +87,11 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 	.get("/questions", () => CERT_QUESTION_BANK.map(summarizeQuestion))
 	.post(
 		"/quiz",
-		({ body }) => {
+		async ({ body, set, userId }) => {
+			if (!userId) {
+				set.status = 401;
+				return { error: "Sign in to start a drill." };
+			}
 			const defaultCount = body.mode === "exam" ? 50 : 10;
 			const config = {
 				mode: body.mode,
@@ -93,7 +101,8 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 				timeLimitSeconds:
 					body.mode === "exam" ? 120 * 60 : body.timeLimitSeconds,
 			};
-			const quiz = createQuiz(config);
+			const quiz = await createQuiz(userId, config);
+			const firstQ = await resolveQuestion(quiz.questionIds[0]);
 			return {
 				id: quiz.id,
 				config: quiz.config,
@@ -101,7 +110,7 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 				currentIndex: 0,
 				startedAt: quiz.startedAt,
 				timeLimitSeconds: quiz.timeLimitSeconds,
-				question: publicQuestion(quiz.questionIds[0]),
+				question: firstQ ? publicQuestion(firstQ) : null,
 			};
 		},
 		{
@@ -139,12 +148,17 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 	)
 	.get(
 		"/quiz/:id",
-		({ params: { id }, set }) => {
-			const quiz = getQuiz(id);
+		async ({ params: { id }, set, userId }) => {
+			if (!userId) {
+				set.status = 401;
+				return { error: "Sign in to load this drill." };
+			}
+			const quiz = await getQuiz(id, userId);
 			if (!quiz) {
 				set.status = 404;
 				return { error: "Not found" };
 			}
+			const currentQ = await resolveQuestion(quiz.questionIds[quiz.currentIndex]);
 			return {
 				id: quiz.id,
 				config: quiz.config,
@@ -153,7 +167,7 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 				startedAt: quiz.startedAt,
 				completedAt: quiz.completedAt,
 				timeLimitSeconds: quiz.timeLimitSeconds,
-				question: publicQuestion(quiz.questionIds[quiz.currentIndex]),
+				question: currentQ ? publicQuestion(currentQ) : null,
 				answers: Object.fromEntries(
 					Object.entries(quiz.answers).map(([qid, a]) => [
 						qid,
@@ -166,8 +180,12 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 	)
 	.post(
 		"/quiz/:id/answer",
-		({ params: { id }, body, set }) => {
-			const quiz = getQuiz(id);
+		async ({ params: { id }, body, set, userId }) => {
+			if (!userId) {
+				set.status = 401;
+				return { error: "Sign in to answer." };
+			}
+			const quiz = await getQuiz(id, userId);
 			if (!quiz) {
 				set.status = 404;
 				return { error: "Not found" };
@@ -177,21 +195,30 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 				set.status = 400;
 				return { error: "No current question" };
 			}
-			const answer = recordAnswer(id, currentQid, body.selected, body.timeMs);
-			const reveal = revealQuestion(currentQid, body.selected);
+			const currentQ = await resolveQuestion(currentQid);
+			if (!currentQ) {
+				set.status = 500;
+				return { error: "Question lookup failed" };
+			}
+			const result = await recordAnswer(id, userId, currentQid, body.selected, body.timeMs);
+			const reveal = revealQuestion(currentQ, body.selected);
 			const isLast = quiz.currentIndex >= quiz.questionIds.length - 1;
 			let next = null;
 			if (!isLast) {
-				advanceQuiz(id);
-				const nextQuiz = getQuiz(id)!;
-				next = publicQuestion(nextQuiz.questionIds[nextQuiz.currentIndex]);
+				await advanceQuiz(id, userId);
+				const updated = await getQuiz(id, userId);
+				if (updated) {
+					const nextQ = await resolveQuestion(updated.questionIds[updated.currentIndex]);
+					next = nextQ ? publicQuestion(nextQ) : null;
+				}
 			}
+			const updatedQuiz = await getQuiz(id, userId);
 			return {
-				answer,
+				answer: { selected: body.selected, correct: result?.correct ?? false },
 				reveal,
 				isLast,
 				nextQuestion: next,
-				currentIndex: getQuiz(id)!.currentIndex,
+				currentIndex: updatedQuiz?.currentIndex ?? quiz.currentIndex,
 			};
 		},
 		{
@@ -210,27 +237,48 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 	)
 	.post(
 		"/quiz/:id/complete",
-		({ params: { id }, set }) => {
-			const quiz = getQuiz(id);
+		async ({ params: { id }, set, userId }) => {
+			if (!userId) {
+				set.status = 401;
+				return { error: "Sign in to finalize." };
+			}
+			const quiz = await getQuiz(id, userId);
 			if (!quiz) {
 				set.status = 404;
 				return { error: "Not found" };
 			}
-			completeQuiz(id);
-			return computeResults(id);
+			await completeQuiz(id, userId);
+			const results = await computeResults(id, userId);
+			// Fire-and-forget adaptive generation for weakest segments.
+			if (results) {
+				generateAdaptiveQuestionsAsync(userId, results).catch((err) => {
+					console.error("[cert] adaptive generation failed:", err);
+				});
+			}
+			return results;
 		},
 		{ params: t.Object({ id: t.String() }) },
 	)
 	.get(
 		"/quiz/:id/results",
-		({ params: { id }, set }) => {
-			const quiz = getQuiz(id);
+		async ({ params: { id }, set, userId }) => {
+			if (!userId) {
+				set.status = 401;
+				return { error: "Sign in to view results." };
+			}
+			const quiz = await getQuiz(id, userId);
 			if (!quiz) {
 				set.status = 404;
 				return { error: "Not found" };
 			}
-			return computeResults(id);
+			return computeResults(id, userId);
 		},
 		{ params: t.Object({ id: t.String() }) },
 	)
-	.get("/stats", () => aggregateAllQuizzes());
+	.get("/stats", async ({ set, userId }) => {
+		if (!userId) {
+			set.status = 401;
+			return { error: "Sign in to view your dashboard." };
+		}
+		return aggregateForUser(userId);
+	});
