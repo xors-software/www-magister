@@ -89,11 +89,14 @@ export async function getUserBySession(
 }
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "reps_session";
-const COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE === "true";
-// In prod (Secure cookies on HTTPS) the web and API may live on
-// different subdomains under a public suffix (teacher.up.railway.app vs
-// teacher-api.up.railway.app are cross-site for cookie purposes).
-// SameSite=None+Secure lets the cookie ride along; Lax breaks login.
+// Default to Secure cookies — production is the common case. Local dev opts
+// out via SESSION_COOKIE_SECURE=false in server/.env (browsers refuse
+// `Secure` cookies over plain http://localhost).
+const COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE !== "false";
+// On HTTPS the web and API may live on different subdomains under a public
+// suffix (teacher.up.railway.app vs teacher-api.up.railway.app are
+// cross-site for cookie purposes). SameSite=None+Secure lets the cookie
+// ride along; Lax breaks login. Lax is fine on plain-HTTP localhost.
 const COOKIE_SAMESITE =
 	process.env.SESSION_COOKIE_SAMESITE ||
 	(COOKIE_SECURE ? "None" : "Lax");
