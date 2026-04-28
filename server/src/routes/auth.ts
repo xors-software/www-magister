@@ -4,34 +4,43 @@ import {
 	buildSessionCookie,
 	createSession,
 	deleteSession,
-	getOrCreateUser,
 	getUserBySession,
 	readSessionToken,
+	signupOrLogin,
 } from "../lib/auth";
 
 export const authRoutes = new Elysia({ prefix: "/auth" })
 	.post(
 		"/login",
-		async ({ body, set, request }) => {
-			try {
-				const user = await getOrCreateUser(body.email, body.displayName);
-				const session = await createSession(user.id);
-				set.headers["set-cookie"] = buildSessionCookie(session.token);
-				return {
-					user: {
-						id: user.id,
-						email: user.email,
-						displayName: user.displayName,
-					},
-				};
-			} catch (e) {
-				set.status = 400;
-				return { error: e instanceof Error ? e.message : "Login failed" };
+		async ({ body, set }) => {
+			const result = await signupOrLogin(body.email, body.password, body.displayName);
+			if (result.kind === "wrong_password") {
+				set.status = 401;
+				return { error: "Wrong password." };
 			}
+			if (result.kind === "invalid_email") {
+				set.status = 400;
+				return { error: "That doesn't look like a valid email." };
+			}
+			if (result.kind === "weak_password") {
+				set.status = 400;
+				return { error: "Password must be at least 8 characters." };
+			}
+			const session = await createSession(result.user.id);
+			set.headers["set-cookie"] = buildSessionCookie(session.token);
+			return {
+				user: {
+					id: result.user.id,
+					email: result.user.email,
+					displayName: result.user.displayName,
+				},
+				newAccount: result.kind === "signup",
+			};
 		},
 		{
 			body: t.Object({
 				email: t.String({ minLength: 3 }),
+				password: t.String({ minLength: 1 }),
 				displayName: t.Optional(t.String()),
 			}),
 		},

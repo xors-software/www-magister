@@ -64,6 +64,12 @@ export async function runMigrations(): Promise<void> {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)
 	`;
+	// Add password_hash column for existing deployments. Nullable so legacy
+	// rows survive the migration; rows without a hash get one set on next
+	// successful login (effectively a one-time grace).
+	await sql`
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT
+	`;
 	await sql`
 		CREATE TABLE IF NOT EXISTS auth_sessions (
 			token TEXT PRIMARY KEY,

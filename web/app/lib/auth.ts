@@ -34,17 +34,23 @@ export async function fetchMe(): Promise<User | null> {
 	}
 }
 
-export async function login(email: string, displayName?: string): Promise<User> {
+export type LoginResult = { user: User; newAccount: boolean };
+
+export async function login(
+	email: string,
+	password: string,
+	displayName?: string,
+): Promise<LoginResult> {
 	const res = await apiFetch("/auth/login", {
 		method: "POST",
-		body: JSON.stringify({ email, displayName }),
+		body: JSON.stringify({ email, password, displayName }),
 	});
 	if (!res.ok) {
 		const data = await res.json().catch(() => ({}));
 		throw new Error(data.error || "Login failed");
 	}
 	const data = await res.json();
-	return data.user;
+	return { user: data.user, newAccount: !!data.newAccount };
 }
 
 export async function logout(): Promise<void> {

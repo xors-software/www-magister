@@ -32,29 +32,78 @@ function generateToken(): string {
 	return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function getOrCreateUser(
+// Result kind tells the caller whether this was a fresh signup (so the UI
+// can show a "welcome" message) or an existing-user login.
+export type LoginOutcome =
+	| { kind: "signup"; user: User }
+	| { kind: "login"; user: User }
+	| { kind: "wrong_password" }
+	| { kind: "invalid_email" }
+	| { kind: "weak_password" };
+
+const MIN_PASSWORD_LEN = 8;
+
+// Auto-signup-on-first-login: if email is new, create with this password.
+// If email exists with a hash, verify. If email exists without a hash
+// (legacy/test rows from the no-password era), accept any password and
+// set it as the new permanent hash. Either way, the caller gets a session.
+export async function signupOrLogin(
 	email: string,
+	password: string,
 	displayName?: string,
-): Promise<User> {
+): Promise<LoginOutcome> {
 	const cleaned = email.trim().toLowerCase();
 	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) {
-		throw new Error("Invalid email");
+		return { kind: "invalid_email" };
 	}
-	const existing = await sql<{ id: string; email: string; display_name: string | null; created_at: string }[]>`
-		SELECT id, email, display_name, created_at FROM users WHERE email = ${cleaned}
-	`;
-	if (existing.length > 0) {
-		const u = existing[0];
-		return { id: u.id, email: u.email, displayName: u.display_name, createdAt: u.created_at };
+	if (typeof password !== "string" || password.length < MIN_PASSWORD_LEN) {
+		return { kind: "weak_password" };
 	}
-	const id = generateUserId();
-	const inserted = await sql<{ id: string; email: string; display_name: string | null; created_at: string }[]>`
-		INSERT INTO users (id, email, display_name)
-		VALUES (${id}, ${cleaned}, ${displayName ?? null})
-		RETURNING id, email, display_name, created_at
+
+	const existing = await sql<
+		{ id: string; email: string; display_name: string | null; created_at: string; password_hash: string | null }[]
+	>`
+		SELECT id, email, display_name, created_at, password_hash
+		FROM users WHERE email = ${cleaned}
 	`;
-	const u = inserted[0];
-	return { id: u.id, email: u.email, displayName: u.display_name, createdAt: u.created_at };
+
+	if (existing.length === 0) {
+		// New user — hash and insert.
+		const id = generateUserId();
+		const hash = await Bun.password.hash(password, { algorithm: "argon2id" });
+		const inserted = await sql<
+			{ id: string; email: string; display_name: string | null; created_at: string }[]
+		>`
+			INSERT INTO users (id, email, display_name, password_hash)
+			VALUES (${id}, ${cleaned}, ${displayName ?? null}, ${hash})
+			RETURNING id, email, display_name, created_at
+		`;
+		const u = inserted[0];
+		return {
+			kind: "signup",
+			user: { id: u.id, email: u.email, displayName: u.display_name, createdAt: u.created_at },
+		};
+	}
+
+	const row = existing[0];
+	const user: User = {
+		id: row.id,
+		email: row.email,
+		displayName: row.display_name,
+		createdAt: row.created_at,
+	};
+
+	if (!row.password_hash) {
+		// Legacy row from before passwords existed. Accept this attempt and
+		// permanently bind the password so subsequent logins must match.
+		const hash = await Bun.password.hash(password, { algorithm: "argon2id" });
+		await sql`UPDATE users SET password_hash = ${hash} WHERE id = ${row.id}`;
+		return { kind: "login", user };
+	}
+
+	const ok = await Bun.password.verify(password, row.password_hash);
+	if (!ok) return { kind: "wrong_password" };
+	return { kind: "login", user };
 }
 
 export async function createSession(userId: string): Promise<AuthSession> {

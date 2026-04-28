@@ -10,6 +10,7 @@ function LoginInner() {
 	const searchParams = useSearchParams();
 	const next = searchParams.get("next") || "/quiz";
 	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
 	const [name, setName] = useState("");
 	const [error, setError] = useState("");
 	const [loading, setLoading] = useState(false);
@@ -19,14 +20,18 @@ function LoginInner() {
 		setError("");
 		setLoading(true);
 		try {
-			await login(email, name || undefined);
+			await login(email, password, name || undefined);
 			router.push(next);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Login failed");
+			setPassword("");
 		} finally {
 			setLoading(false);
 		}
 	}
+
+	const passwordOk = password.length >= 8;
+	const canSubmit = email.length > 3 && passwordOk && !loading;
 
 	return (
 		<main className="min-h-dvh bg-[#0a0a0a] text-[#e8e8e8] flex items-center justify-center px-4">
@@ -41,7 +46,7 @@ function LoginInner() {
 
 				<h1 className="font-serif text-[32px] font-bold text-white tracking-[-0.02em] mb-2">Sign in</h1>
 				<p className="font-sans text-[14px] text-[#888] mb-8 leading-[1.6]">
-					Use your work email — we'll keep your drill history and per-domain stats tied to it. No password (yet); this is an early-access build.
+					Use your work email and a password you'll remember. New here? Your account is created on first sign-in — the password you pick now becomes yours.
 				</p>
 
 				<form onSubmit={onSubmit} className="space-y-3">
@@ -59,7 +64,22 @@ function LoginInner() {
 						/>
 					</div>
 					<div>
-						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Display name <span className="text-[#333] normal-case">(optional)</span></label>
+						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Password</label>
+						<input
+							type="password"
+							required
+							autoComplete="current-password"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							placeholder="At least 8 characters"
+							className="w-full px-4 py-3 rounded-xl bg-[#111] border border-[#1a1a1a] focus:border-[#F5B800] outline-none font-sans text-[14px] text-white placeholder:text-[#444]"
+						/>
+						{password.length > 0 && !passwordOk && (
+							<p className="mt-1.5 font-sans text-[11px] text-[#666]">{8 - password.length} more character{8 - password.length === 1 ? "" : "s"}</p>
+						)}
+					</div>
+					<div>
+						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Display name <span className="text-[#333] normal-case">(optional, new accounts only)</span></label>
 						<input
 							type="text"
 							value={name}
@@ -73,7 +93,7 @@ function LoginInner() {
 					)}
 					<button
 						type="submit"
-						disabled={loading || !email}
+						disabled={!canSubmit}
 						className="w-full py-3.5 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold transition-colors hover:bg-[#e0a800] disabled:opacity-40 disabled:cursor-not-allowed"
 					>
 						{loading ? "Signing in…" : "Sign in"}
@@ -81,7 +101,7 @@ function LoginInner() {
 				</form>
 
 				<p className="mt-6 text-center font-sans text-[12px] text-[#555]">
-					New here? Just enter your email — your account is created automatically.
+					Forgot your password? Ping the project owner — no reset flow yet.
 				</p>
 			</div>
 		</main>
