@@ -10,6 +10,18 @@ import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
 import { runMigrationsWithRetry } from "./lib/pg";
 
+console.log("[boot] server entry, NODE_ENV=", process.env.NODE_ENV ?? "(unset)");
+console.log(
+	"[boot] env signals: DATABASE_URL=",
+	process.env.DATABASE_URL ? "set" : "MISSING",
+	"ANTHROPIC_API_KEY=",
+	process.env.ANTHROPIC_API_KEY ? "set" : "MISSING",
+	"CORS_ORIGIN=",
+	process.env.CORS_ORIGIN ?? "(unset)",
+	"PORT=",
+	process.env.PORT ?? "(unset)",
+);
+
 // Run schema migrations on startup. Retries on transient errors (Railway
 // can race the DB during cold starts) and fails loud if every attempt fails.
 try {

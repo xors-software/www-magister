@@ -33,22 +33,31 @@ const SCENARIO_FILES: Record<ScenarioId, string> = {
 	"structured-extraction": "scenario-6-structured-extraction.md",
 };
 
-// Read the scenario MD from web/public/scenarios. Limit to a reasonable size
-// — the deep-dives are ~30k chars; we trim to stay well under context budget.
+// Read the scenario MD. Tries server/scenarios/ first (bundled with the
+// server deploy) then falls back to web/public/scenarios/ for local
+// monorepo dev. Limit to a reasonable size — the deep-dives are ~30k chars;
+// we trim to stay well under context budget.
 function readScenarioContent(scenario: ScenarioId, maxChars = 18000): string {
-	const path = join(
-		import.meta.dir,
-		"../../../web/public/scenarios",
-		SCENARIO_FILES[scenario],
-	);
-	try {
-		const text = readFileSync(path, "utf-8");
-		if (text.length <= maxChars) return text;
-		// Prefer the front (intro + reference architecture) and the patterns/gotchas section.
-		return text.slice(0, maxChars);
-	} catch (e) {
-		return `(Scenario content not available for ${scenario}.)`;
+	const candidates = [
+		// server/scenarios/ — copy bundled into the server build for prod.
+		join(import.meta.dir, "../../scenarios", SCENARIO_FILES[scenario]),
+		// web/public/scenarios/ — when running from the monorepo root.
+		join(
+			import.meta.dir,
+			"../../../web/public/scenarios",
+			SCENARIO_FILES[scenario],
+		),
+	];
+	for (const path of candidates) {
+		try {
+			const text = readFileSync(path, "utf-8");
+			return text.length <= maxChars ? text : text.slice(0, maxChars);
+		} catch {
+			// try next path
+		}
 	}
+	console.warn(`[cert] scenario file not found for ${scenario}`);
+	return `(Scenario content not available for ${scenario}.)`;
 }
 
 const QUESTION_TOOL = {
