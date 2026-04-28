@@ -8,23 +8,46 @@ import { demoSessionsRoutes } from "./routes/demo-sessions";
 import { healthRoutes } from "./routes/health";
 import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
-import { runMigrations } from "./lib/pg";
+import { runMigrationsWithRetry } from "./lib/pg";
 
-// Run schema migrations once on startup. Failure here should crash the server
-// — without DB access, the cert routes can't function.
-await runMigrations();
-console.log("✓ Postgres migrations applied");
+// Run schema migrations on startup. Retries on transient errors (Railway
+// can race the DB during cold starts) and fails loud if every attempt fails.
+try {
+	await runMigrationsWithRetry();
+	console.log("✓ Postgres migrations applied");
+} catch (err) {
+	console.error("✗ Postgres unreachable after retries — exiting:", err);
+	process.exit(1);
+}
 
-// CORS_ORIGIN must be a specific origin (not '*') because we use credentialed
-// requests for the session cookie. Multiple origins comma-separated.
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+// CORS_ORIGIN must be specific origins (not '*') because session cookies
+// require credentialed requests. Comma-separated; supports wildcards via
+// trailing '*' (e.g. 'https://*.up.railway.app') to cover preview deploys.
+const allowedOriginPatterns = (process.env.CORS_ORIGIN || "http://localhost:3000")
 	.split(",")
-	.map((s) => s.trim());
+	.map((s) => s.trim())
+	.filter(Boolean);
+console.log("[cors] allowed origins:", allowedOriginPatterns.join(", "));
+
+function isOriginAllowed(origin: string): boolean {
+	if (!origin) return false;
+	for (const pattern of allowedOriginPatterns) {
+		if (pattern === origin) return true;
+		if (pattern.includes("*")) {
+			const re = new RegExp(
+				"^" + pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$",
+			);
+			if (re.test(origin)) return true;
+		}
+	}
+	return false;
+}
 
 const app = new Elysia()
 	.onRequest(({ request, set }) => {
 		const origin = request.headers.get("origin") || "";
-		if (allowedOrigins.includes(origin)) {
+		const ok = isOriginAllowed(origin);
+		if (ok) {
 			set.headers["access-control-allow-origin"] = origin;
 		}
 		set.headers["access-control-allow-credentials"] = "true";
@@ -36,7 +59,7 @@ const app = new Elysia()
 			return new Response(null, {
 				status: 204,
 				headers: {
-					"access-control-allow-origin": allowedOrigins.includes(origin) ? origin : "",
+					"access-control-allow-origin": ok ? origin : "",
 					"access-control-allow-credentials": "true",
 					"access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
 					"access-control-allow-headers": "Content-Type,Authorization,Cookie",
@@ -62,7 +85,10 @@ const app = new Elysia()
 	.use(demoSessionsRoutes)
 	.use(authRoutes)
 	.use(certRoutes)
-	.listen(process.env.PORT || 3001);
+	.listen({
+		hostname: "0.0.0.0",
+		port: Number(process.env.PORT) || 3001,
+	});
 
 console.log(
 	`🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}`,

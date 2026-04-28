@@ -90,6 +90,13 @@ export async function getUserBySession(
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "reps_session";
 const COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE === "true";
+// In prod (Secure cookies on HTTPS) the web and API may live on
+// different subdomains under a public suffix (teacher.up.railway.app vs
+// teacher-api.up.railway.app are cross-site for cookie purposes).
+// SameSite=None+Secure lets the cookie ride along; Lax breaks login.
+const COOKIE_SAMESITE =
+	process.env.SESSION_COOKIE_SAMESITE ||
+	(COOKIE_SECURE ? "None" : "Lax");
 
 export function buildSessionCookie(token: string): string {
 	const maxAge = SESSION_TTL_DAYS * 24 * 60 * 60;
@@ -98,14 +105,22 @@ export function buildSessionCookie(token: string): string {
 		"HttpOnly",
 		"Path=/",
 		`Max-Age=${maxAge}`,
-		"SameSite=Lax",
+		`SameSite=${COOKIE_SAMESITE}`,
 	];
 	if (COOKIE_SECURE) parts.push("Secure");
 	return parts.join("; ");
 }
 
 export function buildClearCookie(): string {
-	return `${COOKIE_NAME}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`;
+	const parts = [
+		`${COOKIE_NAME}=`,
+		"HttpOnly",
+		"Path=/",
+		"Max-Age=0",
+		`SameSite=${COOKIE_SAMESITE}`,
+	];
+	if (COOKIE_SECURE) parts.push("Secure");
+	return parts.join("; ");
 }
 
 // Parse a Cookie header into a map.

@@ -13,15 +13,46 @@ if (!DATABASE_URL) {
 	);
 }
 
+// Railway-managed Postgres requires SSL; the platform uses a self-signed
+// cert chain for the proxy, so disable strict verification.
+const isRailway =
+	DATABASE_URL.includes(".rlwy.net") ||
+	DATABASE_URL.includes(".railway.app") ||
+	DATABASE_URL.includes(".railway.internal");
 export const sql = postgres(DATABASE_URL, {
 	max: 8,
 	idle_timeout: 30,
 	connect_timeout: 10,
-	// Railway requires SSL; node-postgres style works fine with porsager/postgres.
-	ssl: "prefer",
+	ssl: isRailway ? { rejectUnauthorized: false } : "prefer",
+	// Suppress "relation already exists" NOTICE spam from idempotent migrations.
+	onnotice: () => {},
 });
 
 let migrated = false;
+
+// Retry on boot — Railway sometimes starts the app before the DB is fully
+// reachable. We back off, then surface a clear error if every attempt fails.
+export async function runMigrationsWithRetry(maxAttempts = 5): Promise<void> {
+	let lastErr: unknown;
+	for (let i = 1; i <= maxAttempts; i++) {
+		try {
+			await runMigrations();
+			return;
+		} catch (err) {
+			lastErr = err;
+			console.error(
+				`[pg] migration attempt ${i}/${maxAttempts} failed:`,
+				err instanceof Error ? err.message : err,
+			);
+			if (i < maxAttempts) {
+				await new Promise((r) => setTimeout(r, 2000 * i));
+			}
+		}
+	}
+	throw lastErr instanceof Error
+		? lastErr
+		: new Error("Postgres migrations failed after retries");
+}
 
 export async function runMigrations(): Promise<void> {
 	if (migrated) return;
