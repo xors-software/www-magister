@@ -59,6 +59,13 @@ const app = new Elysia()
 	.onRequest(({ request, set }) => {
 		const origin = request.headers.get("origin") || "";
 		const ok = isOriginAllowed(origin);
+		// Loud log on denial so production CORS misconfigs are immediately
+		// obvious in Railway logs. Silent on allow.
+		if (origin && !ok) {
+			console.warn(
+				`[cors] DENIED origin "${origin}" — allowed: ${allowedOriginPatterns.join(", ") || "(none)"}`,
+			);
+		}
 		if (ok) {
 			set.headers["access-control-allow-origin"] = origin;
 		}
@@ -68,15 +75,14 @@ const app = new Elysia()
 		set.headers.vary = "Origin";
 
 		if (request.method === "OPTIONS") {
-			return new Response(null, {
-				status: 204,
-				headers: {
-					"access-control-allow-origin": ok ? origin : "",
-					"access-control-allow-credentials": "true",
-					"access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
-					"access-control-allow-headers": "Content-Type,Authorization,Cookie",
-				},
-			});
+			const headers: Record<string, string> = {
+				"access-control-allow-credentials": "true",
+				"access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"access-control-allow-headers": "Content-Type,Authorization,Cookie",
+				vary: "Origin",
+			};
+			if (ok) headers["access-control-allow-origin"] = origin;
+			return new Response(null, { status: 204, headers });
 		}
 	})
 	.use(
