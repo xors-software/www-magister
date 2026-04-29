@@ -227,11 +227,6 @@ export default function QuizRunner() {
 					<span className="px-2 py-0.5 rounded font-sans text-[11px] font-medium border border-[#2a2a2a] text-[#888]">
 						{question.domain} · {question.domainLabel}
 					</span>
-					{question.tasks.map((t) => (
-						<span key={t} className="px-2 py-0.5 rounded font-sans text-[10px] font-medium border border-[#222] text-[#666]">
-							Task {t}
-						</span>
-					))}
 					<span className="px-2 py-0.5 rounded font-sans text-[10px] font-medium border border-[#222] text-[#666] uppercase tracking-wider">
 						{question.difficulty}
 					</span>
@@ -326,15 +321,27 @@ export default function QuizRunner() {
 								</div>
 							</div>
 						)}
-						{reveal.studyTags.length > 0 && (
-							<div className="flex flex-wrap gap-1.5">
-								{reveal.studyTags.map((t) => (
-									<span key={t} className="px-2 py-0.5 rounded font-mono text-[11px] text-[#666] border border-[#222] bg-[#0d0d0d]">
-										{t}
-									</span>
-								))}
-							</div>
-						)}
+						{(() => {
+							// Filter out internal exam-guide task IDs (e.g. "Task-1.6"); they're
+							// data-model book-keeping, not learner-facing concepts.
+							const visible = reveal.studyTags.filter(
+								(t) => !/^task[-_ ]?\d/i.test(t),
+							);
+							return visible.length > 0 ? (
+								<div>
+									<div className="font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-2">
+										Study tags
+									</div>
+									<div className="flex flex-wrap gap-1.5">
+										{visible.map((t) => (
+											<span key={t} className="px-2 py-0.5 rounded font-mono text-[11px] text-[#888] border border-[#222] bg-[#0d0d0d]">
+												{t}
+											</span>
+										))}
+									</div>
+								</div>
+							) : null;
+						})()}
 						<button
 							type="button"
 							onClick={isLast ? finish : next}

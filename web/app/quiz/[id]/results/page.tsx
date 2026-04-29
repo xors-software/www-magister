@@ -243,13 +243,18 @@ export default function ResultsPage() {
 										<span className="text-green-400 font-mono font-bold">{m.correct}</span>
 									</div>
 									<div className="font-sans text-[13px] text-[#bbb] leading-[1.6]">{m.explanation}</div>
-									{m.studyTags.length > 0 && (
-										<div className="flex flex-wrap gap-1.5 mt-3">
-											{m.studyTags.map((t) => (
-												<span key={t} className="px-2 py-0.5 rounded font-mono text-[10px] text-[#666] border border-[#222]">{t}</span>
-											))}
-										</div>
-									)}
+									{(() => {
+										const visible = m.studyTags.filter(
+											(t) => !/^task[-_ ]?\d/i.test(t),
+										);
+										return visible.length > 0 ? (
+											<div className="flex flex-wrap gap-1.5 mt-3">
+												{visible.map((t) => (
+													<span key={t} className="px-2 py-0.5 rounded font-mono text-[10px] text-[#666] border border-[#222]">{t}</span>
+												))}
+											</div>
+										) : null;
+									})()}
 								</div>
 							))}
 						</div>
