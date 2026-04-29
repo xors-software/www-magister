@@ -241,7 +241,7 @@ export default function ScenarioDetail() {
 
 	useEffect(() => {
 		if (!file) return;
-		fetch(`/scenarios/${file}.md`)
+		fetch(`/claude-code/scenarios/${file}.md`)
 			.then((r) => r.text())
 			.then((text) => {
 				setMd(text);
@@ -257,7 +257,7 @@ export default function ScenarioDetail() {
 			<main className="min-h-dvh bg-[#0a0a0a] flex items-center justify-center text-center px-4">
 				<div>
 					<div className="font-serif text-[24px] text-white mb-2">Unknown scenario</div>
-					<Link href="/scenarios" className="font-sans text-[13px] text-[#F5B800] hover:underline">Back to all scenarios →</Link>
+					<Link href="/claude-code/scenarios" className="font-sans text-[13px] text-[#F5B800] hover:underline">Back to all scenarios →</Link>
 				</div>
 			</main>
 		);
@@ -273,14 +273,14 @@ export default function ScenarioDetail() {
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</Link>
 					<div className="flex gap-3">
-						<Link href="/scenarios" className="font-sans text-[13px] text-[#888] hover:text-white">All scenarios</Link>
-						<Link href={`/quiz?prefill=scenario:${params.id}`} className="font-sans text-[13px] text-[#F5B800] hover:underline">Drill this scenario</Link>
+						<Link href="/claude-code/scenarios" className="font-sans text-[13px] text-[#888] hover:text-white">All scenarios</Link>
+						<Link href={`/claude-code/quiz?prefill=scenario:${params.id}`} className="font-sans text-[13px] text-[#F5B800] hover:underline">Drill this scenario</Link>
 					</div>
 				</div>
 			</nav>
 
 			<div className="max-w-[820px] mx-auto px-6 pt-8">
-				<Link href="/scenarios" className="font-sans text-[12px] text-[#666] hover:text-[#F5B800]">
+				<Link href="/claude-code/scenarios" className="font-sans text-[12px] text-[#666] hover:text-[#F5B800]">
 					← All scenarios
 				</Link>
 			</div>

@@ -43,14 +43,14 @@ export default function ClaudeCodeCertLanding() {
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</Link>
 					<div className="flex items-center gap-4">
-						<Link href="/scenarios" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">
+						<Link href="/claude-code/scenarios" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">
 							Scenarios
 						</Link>
-						<Link href="/dashboard" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">
+						<Link href="/claude-code/dashboard" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">
 							Dashboard
 						</Link>
 						<Link
-							href="/quiz"
+							href="/claude-code/quiz"
 							className="font-sans text-sm font-medium px-4 py-1.5 rounded-lg bg-[#F5B800] text-black hover:bg-[#e0a800] transition-colors"
 						>
 							Start drilling
@@ -76,13 +76,13 @@ export default function ClaudeCodeCertLanding() {
 					</p>
 					<div className="flex flex-col sm:flex-row gap-3 justify-center">
 						<Link
-							href="/quiz"
+							href="/claude-code/quiz"
 							className="px-8 py-3.5 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
 						>
 							Start a quick drill
 						</Link>
 						<Link
-							href="/scenarios"
+							href="/claude-code/scenarios"
 							className="px-8 py-3.5 rounded-xl border border-[#2a2a2a] text-white font-sans text-[15px] font-semibold hover:border-[#444]"
 						>
 							Read the scenarios
@@ -104,7 +104,7 @@ export default function ClaudeCodeCertLanding() {
 						{SCENARIOS.map((s) => (
 							<Link
 								key={s.id}
-								href={`/scenarios/${s.id}`}
+								href={`/claude-code/scenarios/${s.id}`}
 								className="rounded-2xl border border-[#1a1a1a] bg-[#0d0d0d] p-5 hover:border-[#444] transition-colors"
 							>
 								<div className="flex items-center gap-3 mb-3">
@@ -171,7 +171,7 @@ export default function ClaudeCodeCertLanding() {
 						720 is the pass line. 950 is when you stop drilling and book the exam. Reps tells you which line you're on.
 					</p>
 					<Link
-						href="/quiz"
+						href="/claude-code/quiz"
 						className="inline-block px-10 py-4 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
 					>
 						Start your first drill
@@ -187,9 +187,9 @@ export default function ClaudeCodeCertLanding() {
 						<span className="font-sans text-[12px] text-[#555]">Reps</span>
 					</Link>
 					<div className="flex gap-4">
-						<Link href="/scenarios" className="font-sans text-[12px] text-[#555] hover:text-[#888]">Scenarios</Link>
-						<Link href="/quiz" className="font-sans text-[12px] text-[#555] hover:text-[#888]">Drill</Link>
-						<Link href="/dashboard" className="font-sans text-[12px] text-[#555] hover:text-[#888]">Dashboard</Link>
+						<Link href="/claude-code/scenarios" className="font-sans text-[12px] text-[#555] hover:text-[#888]">Scenarios</Link>
+						<Link href="/claude-code/quiz" className="font-sans text-[12px] text-[#555] hover:text-[#888]">Drill</Link>
+						<Link href="/claude-code/dashboard" className="font-sans text-[12px] text-[#555] hover:text-[#888]">Dashboard</Link>
 					</div>
 				</div>
 			</footer>

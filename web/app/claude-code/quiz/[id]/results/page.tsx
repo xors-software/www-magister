@@ -73,11 +73,11 @@ export default function ResultsPage() {
 		(async () => {
 			const me = await fetchMe();
 			if (!me) {
-				router.push(`/login?next=/quiz/${params.id}/results`);
+				router.push(`/login?next=/claude-code/quiz/${params.id}/results`);
 				return;
 			}
 			try {
-				const res = await apiFetch(`/cert/quiz/${params.id}/results`);
+				const res = await apiFetch(`/cert/claude-code/quiz/${params.id}/results`);
 				const data = await res.json();
 				if (data.error) setError(data.error);
 				else setResults(data);
@@ -93,7 +93,7 @@ export default function ResultsPage() {
 				<div>
 					<div className="font-serif text-[24px] text-white mb-2">No results yet</div>
 					<div className="font-sans text-[14px] text-[#888] mb-6">{error}</div>
-					<Link href="/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">Start a new drill →</Link>
+					<Link href="/claude-code/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">Start a new drill →</Link>
 				</div>
 			</main>
 		);
@@ -125,8 +125,8 @@ export default function ResultsPage() {
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</Link>
 					<div className="flex gap-3">
-						<Link href="/quiz" className="font-sans text-[13px] text-[#888] hover:text-white">New drill</Link>
-						<Link href="/dashboard" className="font-sans text-[13px] text-[#888] hover:text-white">Dashboard</Link>
+						<Link href="/claude-code/quiz" className="font-sans text-[13px] text-[#888] hover:text-white">New drill</Link>
+						<Link href="/claude-code/dashboard" className="font-sans text-[13px] text-[#888] hover:text-white">Dashboard</Link>
 					</div>
 				</div>
 			</nav>
@@ -270,7 +270,7 @@ export default function ResultsPage() {
 								{results.weakestDomains.map((d) => (
 									<Link
 										key={d}
-										href={`/quiz?prefill=domain:${d}`}
+										href={`/claude-code/quiz?prefill=domain:${d}`}
 										className="px-3 py-1 rounded-full font-mono text-[12px] text-[#F5B800] border border-[#F5B800]/40 hover:bg-[#F5B800]/10"
 									>
 										{d}: {DOMAIN_LABELS[d]}
@@ -286,7 +286,7 @@ export default function ResultsPage() {
 								{results.weakestScenarios.map((s) => (
 									<Link
 										key={s}
-										href={`/scenarios/${s}`}
+										href={`/claude-code/scenarios/${s}`}
 										className="px-3 py-1 rounded-full font-sans text-[12px] text-[#F5B800] border border-[#F5B800]/40 hover:bg-[#F5B800]/10"
 									>
 										Read: {SCENARIO_LABELS[s]}
@@ -296,10 +296,10 @@ export default function ResultsPage() {
 						</div>
 					)}
 					<div className="flex flex-wrap gap-3">
-						<Link href="/quiz" className="px-4 py-2 rounded-lg bg-[#F5B800] text-black font-sans text-sm font-bold">
+						<Link href="/claude-code/quiz" className="px-4 py-2 rounded-lg bg-[#F5B800] text-black font-sans text-sm font-bold">
 							Run another drill
 						</Link>
-						<Link href="/dashboard" className="px-4 py-2 rounded-lg border border-[#F5B80055] text-[#F5B800] font-sans text-sm font-semibold hover:bg-[#F5B800]/10">
+						<Link href="/claude-code/dashboard" className="px-4 py-2 rounded-lg border border-[#F5B80055] text-[#F5B800] font-sans text-sm font-semibold hover:bg-[#F5B800]/10">
 							View dashboard
 						</Link>
 					</div>

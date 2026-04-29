@@ -60,11 +60,11 @@ export default function QuizRunner() {
 		(async () => {
 			const me = await fetchMe();
 			if (!me) {
-				router.push(`/login?next=/quiz/${quizId}`);
+				router.push(`/login?next=/claude-code/quiz/${quizId}`);
 				return;
 			}
 			try {
-				const res = await apiFetch(`/cert/quiz/${quizId}`);
+				const res = await apiFetch(`/cert/claude-code/quiz/${quizId}`);
 				const data = await res.json();
 				if (data.error) {
 					setError(data.error);
@@ -139,7 +139,7 @@ export default function QuizRunner() {
 		setSubmitting(true);
 		try {
 			const timeMs = Date.now() - startTimeRef.current;
-			const res = await apiFetch(`/cert/quiz/${quizId}/answer`, {
+			const res = await apiFetch(`/cert/claude-code/quiz/${quizId}/answer`, {
 				method: "POST",
 				body: JSON.stringify({ selected, timeMs }),
 			});
@@ -163,8 +163,8 @@ export default function QuizRunner() {
 	}
 
 	async function finish() {
-		await apiFetch(`/cert/quiz/${quizId}/complete`, { method: "POST" });
-		router.push(`/quiz/${quizId}/results`);
+		await apiFetch(`/cert/claude-code/quiz/${quizId}/complete`, { method: "POST" });
+		router.push(`/claude-code/quiz/${quizId}/results`);
 	}
 
 	const isLast = currentIndex >= totalQuestions - 1;
@@ -177,7 +177,7 @@ export default function QuizRunner() {
 				<div className="max-w-md text-center">
 					<div className="font-serif text-[24px] text-white mb-2">Couldn't load this quiz</div>
 					<div className="font-sans text-[14px] text-[#888] mb-6">{error}</div>
-					<Link href="/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">Back to launcher →</Link>
+					<Link href="/claude-code/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">Back to launcher →</Link>
 				</div>
 			</main>
 		);

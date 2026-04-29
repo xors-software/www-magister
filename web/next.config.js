@@ -1,6 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    // The original flat URLs are kept alive so bookmarks/links from before
+    // the cert-namespacing don't 404. Permanent so search engines update.
+    return [
+      { source: "/quiz", destination: "/claude-code/quiz", permanent: true },
+      { source: "/quiz/:id", destination: "/claude-code/quiz/:id", permanent: true },
+      { source: "/quiz/:id/results", destination: "/claude-code/quiz/:id/results", permanent: true },
+      { source: "/scenarios", destination: "/claude-code/scenarios", permanent: true },
+      { source: "/scenarios/:id", destination: "/claude-code/scenarios/:id", permanent: true },
+      { source: "/dashboard", destination: "/claude-code/dashboard", permanent: true },
+    ];
+  },
   images: {
     dangerouslyAllowSVG: true,
     remotePatterns: [

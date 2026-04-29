@@ -20,8 +20,8 @@ export default function ScenariosIndex() {
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</Link>
 					<div className="flex gap-3">
-						<Link href="/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">Drill</Link>
-						<Link href="/dashboard" className="font-sans text-[13px] text-[#888] hover:text-white">Dashboard</Link>
+						<Link href="/claude-code/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">Drill</Link>
+						<Link href="/claude-code/dashboard" className="font-sans text-[13px] text-[#888] hover:text-white">Dashboard</Link>
 					</div>
 				</div>
 			</nav>
@@ -36,7 +36,7 @@ export default function ScenariosIndex() {
 					{SCENARIOS.map((s) => (
 						<Link
 							key={s.id}
-							href={`/scenarios/${s.id}`}
+							href={`/claude-code/scenarios/${s.id}`}
 							className="rounded-xl border border-[#1a1a1a] hover:border-[#444] bg-[#0d0d0d] p-5 flex items-start gap-4 transition-colors"
 						>
 							<span

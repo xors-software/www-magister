@@ -9,42 +9,43 @@ export const metadata: Metadata = {
 
 const CERTIFICATIONS = [
 	{
+		name: "Claude Code Cert",
+		accent: "#F5B800",
+		price: "$200",
+		tagline: "Pass the Anthropic Claude Code certification",
+		description: "Full MC question bank, 50-question mock exam with timer, per-domain dashboard, scenario reader, and adaptive question generation that targets your weak spots.",
+		topics: ["Agentic Architecture", "Tool Design & MCP", "Claude Code Workflows", "Prompt Engineering", "Context Management", "6 Scenarios", "5 Domains"],
+		stat: "5 domains · 6 scenarios",
+		cta: "Drill the exam",
+		level: "claude-cert" as const,
+		href: "/claude-code",
+		badge: "Full prep platform",
+	},
+	{
 		name: "CISSP",
 		accent: "#4f9cf7",
 		price: "$749",
 		tagline: "Think like a security manager, not a test-taker",
-		description: "Scenario-based Socratic tutoring across all 8 CISSP domains. The AI tutor forces you to reason through real security decisions — not just recall definitions.",
+		description: "Socratic tutoring across all 8 CISSP domains. The AI tutor forces you to reason through real security decisions. Mock exam and dashboard not yet wired up for this cert.",
 		topics: ["Risk Management", "Asset Security", "Architecture", "Network Security", "IAM", "Assessment", "Operations", "Software Security"],
 		stat: "8 domains",
 		cta: "Practice CISSP",
 		level: "cissp" as const,
 		href: "/demo/classic?level=cissp",
+		badge: "Tutor only",
 	},
 	{
 		name: "OSCP",
 		accent: "#ef4444",
 		price: "$1,749",
 		tagline: "Hack boxes, write reports, pass the exam",
-		description: "Practice offensive security methodology with AI-guided scenarios. Enumeration, exploitation, privilege escalation — with specific commands and VM-based interactive labs.",
+		description: "Socratic pentesting practice with AI-guided scenarios. Enumeration, exploitation, privilege escalation — specific commands. VM labs and mock exam not yet wired up.",
 		topics: ["Enumeration", "Exploitation", "Privilege Escalation", "Pivoting", "Active Directory", "Web Attacks", "Report Writing"],
 		stat: "7 skill areas",
 		cta: "Practice OSCP",
 		level: "oscp" as const,
 		href: "/demo/classic?level=oscp",
-		badge: "VM Labs coming soon",
-	},
-	{
-		name: "Claude Code Cert",
-		accent: "#F5B800",
-		price: "$200",
-		tagline: "Pass the Anthropic Claude Code certification",
-		description: "Multiple-choice drills built around the six official exam scenarios, with a full mock exam, per-domain weakness analytics, and the Socratic tutor when you need to go deeper.",
-		topics: ["Agentic Architecture", "Tool Design & MCP", "Claude Code Workflows", "Prompt Engineering", "Context Management", "6 Scenarios", "5 Domains"],
-		stat: "5 domains · 6 scenarios",
-		cta: "Drill the exam",
-		level: "claude-cert" as const,
-		href: "/quiz",
-		badge: "Mock exam mode",
+		badge: "Tutor only",
 	},
 ]
 
@@ -106,10 +107,10 @@ export default function Home() {
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</div>
 					<div className="flex items-center gap-4">
-						<Link href="/scenarios" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Scenarios</Link>
-						<Link href="/dashboard" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Dashboard</Link>
+						<Link href="/claude-code/scenarios" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Scenarios</Link>
+						<Link href="/claude-code/dashboard" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Dashboard</Link>
 						<Link
-							href="/quiz"
+							href="/claude-code/quiz"
 							className="font-sans text-sm font-medium px-4 py-1.5 rounded-lg bg-[#F5B800] text-black hover:bg-[#e0a800] transition-colors"
 						>
 							Try the demo
@@ -136,7 +137,7 @@ export default function Home() {
 						Until now.
 					</p>
 					<Link
-						href="/quiz"
+						href="/claude-code/quiz"
 						className="inline-block px-8 py-4 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
 					>
 						Start a free session
@@ -314,7 +315,7 @@ export default function Home() {
 						Pick a cert and try a session. It takes 5 minutes to see why this is different.
 					</p>
 					<Link
-						href="/quiz"
+						href="/claude-code/quiz"
 						className="inline-block px-10 py-4 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold hover:bg-[#e0a800] transition-colors"
 					>
 						Start a free session

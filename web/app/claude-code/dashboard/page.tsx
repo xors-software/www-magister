@@ -52,7 +52,7 @@ export default function Dashboard() {
 		(async () => {
 			const user = await fetchMe();
 			if (!user) {
-				router.push("/login?next=/dashboard");
+				router.push("/login?next=/claude-code/dashboard");
 				return;
 			}
 			setMe(user);
@@ -89,8 +89,8 @@ export default function Dashboard() {
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</Link>
 					<div className="flex gap-3 items-center">
-						<Link href="/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">New drill</Link>
-						<Link href="/scenarios" className="font-sans text-[13px] text-[#888] hover:text-white">Scenarios</Link>
+						<Link href="/claude-code/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">New drill</Link>
+						<Link href="/claude-code/scenarios" className="font-sans text-[13px] text-[#888] hover:text-white">Scenarios</Link>
 						{me && (
 							<>
 								<span className="font-sans text-[12px] text-[#444]">·</span>
@@ -114,7 +114,7 @@ export default function Dashboard() {
 						<p className="font-sans text-[13px] text-[#888] mb-5 max-w-md mx-auto">
 							Start with a 10-question Quick Quiz to feel out the format, then move to scenario drills, then a full Mock Exam when you're scoring 90%+.
 						</p>
-						<Link href="/quiz" className="inline-block px-6 py-3 rounded-xl bg-[#F5B800] text-black font-sans text-sm font-bold">
+						<Link href="/claude-code/quiz" className="inline-block px-6 py-3 rounded-xl bg-[#F5B800] text-black font-sans text-sm font-bold">
 							Start your first drill
 						</Link>
 					</div>
@@ -192,7 +192,7 @@ export default function Dashboard() {
 										</div>
 										<div className="flex items-center justify-between">
 											<span className="font-mono text-[11px] text-[#555]">{s.correct}/{s.total}</span>
-											<Link href={`/scenarios/${s.scenario}`} className="font-sans text-[11px] text-[#888] hover:text-white">
+											<Link href={`/claude-code/scenarios/${s.scenario}`} className="font-sans text-[11px] text-[#888] hover:text-white">
 												Read deep-dive →
 											</Link>
 										</div>

@@ -8,7 +8,7 @@ import { login } from "@/lib/auth";
 function LoginInner() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const next = searchParams.get("next") || "/quiz";
+	const next = searchParams.get("next") || "/claude-code/quiz";
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [name, setName] = useState("");

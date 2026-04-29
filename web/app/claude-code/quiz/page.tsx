@@ -41,7 +41,7 @@ export default function QuizLauncher() {
 	useEffect(() => {
 		fetchMe().then((user) => {
 			if (!user) {
-				router.push("/login?next=/quiz");
+				router.push("/login?next=/claude-code/quiz");
 				return;
 			}
 			setMe(user);
@@ -51,7 +51,7 @@ export default function QuizLauncher() {
 
 	useEffect(() => {
 		if (!authChecked) return;
-		apiFetch("/cert/scenarios").then((r) => r.json()).then(setScenarios).catch(() => {});
+		apiFetch("/cert/claude-code/scenarios").then((r) => r.json()).then(setScenarios).catch(() => {});
 		apiFetch("/cert/domains").then((r) => r.json()).then(setDomains).catch(() => {});
 	}, [authChecked]);
 
@@ -63,7 +63,7 @@ export default function QuizLauncher() {
 			if (mode === "exam") body.count = 50;
 			if (mode === "scenario") body.scenario = scenario;
 			if (mode === "domain") body.domain = domain;
-			const res = await apiFetch("/cert/quiz", {
+			const res = await apiFetch("/cert/claude-code/quiz", {
 				method: "POST",
 				body: JSON.stringify(body),
 			});
@@ -73,7 +73,7 @@ export default function QuizLauncher() {
 				setLoading(false);
 				return;
 			}
-			router.push(`/quiz/${data.id}`);
+			router.push(`/claude-code/quiz/${data.id}`);
 		} catch {
 			setError("Could not connect to the server. Make sure the API is running on port 3001.");
 			setLoading(false);
@@ -262,7 +262,7 @@ export default function QuizLauncher() {
 				</button>
 
 				<div className="mt-6 text-center">
-					<Link href="/dashboard" className="font-sans text-[13px] text-[#888] hover:text-white">
+					<Link href="/claude-code/dashboard" className="font-sans text-[13px] text-[#888] hover:text-white">
 						Or check your dashboard →
 					</Link>
 				</div>
