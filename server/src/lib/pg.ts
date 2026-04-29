@@ -90,8 +90,16 @@ export async function runMigrations(): Promise<void> {
 			time_limit_seconds INT
 		)
 	`;
+	// `track` segments quizzes by certification/curriculum (claude-code,
+	// ai-fundamentals, …). Default backfills existing rows to claude-code.
+	await sql`
+		ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS track TEXT NOT NULL DEFAULT 'claude-code'
+	`;
 	await sql`
 		CREATE INDEX IF NOT EXISTS quizzes_user_idx ON quizzes(user_id, started_at DESC)
+	`;
+	await sql`
+		CREATE INDEX IF NOT EXISTS quizzes_user_track_idx ON quizzes(user_id, track, started_at DESC)
 	`;
 	await sql`
 		CREATE TABLE IF NOT EXISTS quiz_answers (

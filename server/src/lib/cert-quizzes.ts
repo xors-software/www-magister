@@ -164,9 +164,9 @@ export async function createQuiz(userId: string, config: QuizConfig): Promise<Qu
 	const id = generateId();
 	const startedAt = new Date().toISOString();
 	await sql`
-		INSERT INTO quizzes (id, user_id, config, question_ids, current_index, started_at, time_limit_seconds)
+		INSERT INTO quizzes (id, user_id, track, config, question_ids, current_index, started_at, time_limit_seconds)
 		VALUES (
-			${id}, ${userId}, ${JSON.stringify(config)}::jsonb,
+			${id}, ${userId}, 'claude-code', ${JSON.stringify(config)}::jsonb,
 			${selectedIds}::text[], 0, ${startedAt}, ${config.timeLimitSeconds ?? null}
 		)
 	`;
@@ -396,7 +396,7 @@ export async function aggregateForUser(userId: string): Promise<{
 }> {
 	const quizRows = await sql<{ id: string; question_ids: string[]; completed_at: string | null }[]>`
 		SELECT id, question_ids, completed_at FROM quizzes
-		WHERE user_id = ${userId} AND completed_at IS NOT NULL
+		WHERE user_id = ${userId} AND track = 'claude-code' AND completed_at IS NOT NULL
 		ORDER BY completed_at ASC
 	`;
 
