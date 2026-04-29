@@ -5,6 +5,7 @@ import { authRoutes } from "./routes/auth";
 import { certRoutes } from "./routes/cert";
 import { coursesRoutes } from "./routes/courses";
 import { demoSessionsRoutes } from "./routes/demo-sessions";
+import { fundamentalsRoutes } from "./routes/fundamentals";
 import { healthRoutes } from "./routes/health";
 import { sessionsRoutes } from "./routes/sessions";
 import { usersRoutes } from "./routes/users";
@@ -103,6 +104,7 @@ const app = new Elysia()
 	.use(demoSessionsRoutes)
 	.use(authRoutes)
 	.use(certRoutes)
+	.use(fundamentalsRoutes)
 	.listen({
 		hostname: "0.0.0.0",
 		port: Number(process.env.PORT) || 8080,

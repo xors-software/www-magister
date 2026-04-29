@@ -50,11 +50,12 @@ export default function AIFundamentalsPage() {
 					</Link>
 					<div className="flex items-center gap-4">
 						<Link href="/" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Home</Link>
+						<Link href="#cheatsheets" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Cheatsheets</Link>
 						<Link
-							href="#cheatsheets"
+							href="/ai-fundamentals/quiz"
 							className="font-sans text-sm font-medium px-4 py-1.5 rounded-lg bg-[#ec4899] text-white hover:bg-[#db2777] transition-colors"
 						>
-							Start with cheatsheets
+							Drill the basics
 						</Link>
 					</div>
 				</div>
@@ -163,6 +164,36 @@ export default function AIFundamentalsPage() {
 								<p className="font-sans text-[13px] text-[#888] leading-[1.65]">{d.tagline}</p>
 							</a>
 						))}
+					</div>
+				</div>
+			</section>
+
+			<section className="py-20 px-6 border-t border-[#1a1a1a]">
+				<div className="max-w-[760px] mx-auto">
+					<div className="rounded-2xl border border-[#ec4899]/30 bg-gradient-to-br from-[#ec4899]/10 to-transparent p-8 sm:p-10">
+						<div className="font-sans text-[11px] font-semibold text-[#ec4899] uppercase tracking-[0.08em] mb-3">
+							Test what you remember
+						</div>
+						<h2 className="font-serif text-[30px] font-bold text-white tracking-[-0.02em] mb-3">
+							Drill the basics
+						</h2>
+						<p className="font-sans text-[15px] text-[#aaa] leading-[1.65] mb-6 max-w-[560px]">
+							Quick-fire multiple choice over the cheatsheet content. Three modes: a 10-question warm-up, a topic-focused drill, or a 30-question mock mix. Per-topic dashboard tracks where you're solid and where to re-read.
+						</p>
+						<div className="flex flex-wrap gap-3">
+							<Link
+								href="/ai-fundamentals/quiz"
+								className="px-6 py-3 rounded-xl bg-[#ec4899] text-white font-sans text-[14px] font-bold hover:bg-[#db2777]"
+							>
+								Start a drill →
+							</Link>
+							<Link
+								href="/ai-fundamentals/dashboard"
+								className="px-6 py-3 rounded-xl border border-[#ec489940] text-[#ec4899] font-sans text-[14px] font-semibold hover:bg-[#ec4899]/10"
+							>
+								Your dashboard
+							</Link>
+						</div>
 					</div>
 				</div>
 			</section>
