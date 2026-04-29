@@ -9,7 +9,11 @@ const nextConfig = {
       { source: "/quiz/:id", destination: "/claude-code/quiz/:id", permanent: true },
       { source: "/quiz/:id/results", destination: "/claude-code/quiz/:id/results", permanent: true },
       { source: "/scenarios", destination: "/claude-code/scenarios", permanent: true },
-      { source: "/scenarios/:id", destination: "/claude-code/scenarios/:id", permanent: true },
+      // `:id([^.]+)` excludes dotted paths so the static .md files in
+      // /public/scenarios/* aren't 301'd into the Next.js page route.
+      // Without this the page would fetch its own HTML and render the
+      // RSC payload as text.
+      { source: "/scenarios/:id([^.]+)", destination: "/claude-code/scenarios/:id", permanent: true },
       { source: "/dashboard", destination: "/claude-code/dashboard", permanent: true },
     ];
   },
