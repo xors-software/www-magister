@@ -3,7 +3,7 @@
 // All Reps API requests MUST include credentials so the session cookie
 // rides along on cross-origin calls. Use `apiFetch` everywhere.
 
-export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 export type User = {
 	id: string;

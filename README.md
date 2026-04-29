@@ -34,8 +34,8 @@ A full-stack monorepo starter for XORS projects, featuring a [Next.js](https://n
 4. Run `npx vercel link` + `npx vercel env pull web/.env.local` to retrieve .env files from Vercel (if any)
 5. Run `bun dev` to start both frontend and backend:
    - Frontend: [http://localhost:3000](http://localhost:3000)
-   - Backend API: [http://localhost:3001](http://localhost:3001)
-   - Swagger Docs: [http://localhost:3001/swagger](http://localhost:3001/swagger)
+   - Backend API: [http://localhost:8080](http://localhost:8080)
+   - Swagger Docs: [http://localhost:8080/swagger](http://localhost:8080/swagger)
 
 ## Project Structure
 
@@ -124,7 +124,7 @@ Then import and use in `index.ts`:
 ```typescript
 import { exampleRoutes } from "./routes/example";
 
-const app = new Elysia().use(exampleRoutes).listen(3001);
+const app = new Elysia().use(exampleRoutes).listen(8080);
 ```
 
 ### Included Routes
@@ -137,7 +137,7 @@ const app = new Elysia().use(exampleRoutes).listen(3001);
 
 ### API Documentation
 
-Swagger documentation is automatically generated and available at [http://localhost:3001/swagger](http://localhost:3001/swagger) when the server is running.
+Swagger documentation is automatically generated and available at [http://localhost:8080/swagger](http://localhost:8080/swagger) when the server is running.
 
 ## Barrel Exports
 

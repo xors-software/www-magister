@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import katex from "katex"
 import "katex/dist/katex.min.css"
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
 interface SessionMsg {
 	role: string

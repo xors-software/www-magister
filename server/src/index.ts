@@ -105,7 +105,7 @@ const app = new Elysia()
 	.use(certRoutes)
 	.listen({
 		hostname: "0.0.0.0",
-		port: Number(process.env.PORT) || 3001,
+		port: Number(process.env.PORT) || 8080,
 	});
 
 console.log(

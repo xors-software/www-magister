@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
 interface Gap {
 	concept: string
