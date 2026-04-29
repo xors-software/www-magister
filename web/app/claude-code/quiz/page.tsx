@@ -75,7 +75,9 @@ export default function QuizLauncher() {
 			}
 			router.push(`/claude-code/quiz/${data.id}`);
 		} catch {
-			setError("Could not connect to the server. Make sure the API is running on port 3001.");
+			setError(
+				"Couldn't reach the server. Refresh the page and try again — if it persists, ping the project owner.",
+			);
 			setLoading(false);
 		}
 	}
