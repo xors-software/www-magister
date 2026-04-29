@@ -107,6 +107,7 @@ export default function Home() {
 						<span className="font-sans text-[13px] font-medium text-[#888] tracking-[0.04em]">Reps</span>
 					</div>
 					<div className="flex items-center gap-4">
+						<Link href="/ai-fundamentals" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">AI Fundamentals</Link>
 						<Link href="/claude-code/scenarios" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Scenarios</Link>
 						<Link href="/claude-code/dashboard" className="hidden sm:block font-sans text-sm text-[#888] hover:text-white">Dashboard</Link>
 						<Link
@@ -235,8 +236,37 @@ export default function Home() {
 				</div>
 			</section>
 
-			{/* OSCP VM Labs callout */}
+			{/* AI Fundamentals — beginner track */}
 			<section className="py-16 px-6 border-t border-[#1a1a1a] bg-[#080808]">
+				<div className="max-w-[720px] mx-auto">
+					<div className="rounded-2xl border border-[#ec4899]/20 bg-[#ec4899]/5 p-8">
+						<div className="flex items-center gap-3 mb-4">
+							<span className="w-10 h-10 rounded-lg bg-[#ec4899] flex items-center justify-center font-mono text-sm font-bold text-white">AI</span>
+							<div>
+								<h3 className="font-sans text-[17px] font-bold text-white">New to AI? Start here.</h3>
+								<span className="font-sans text-xs text-[#ec4899]">Lazer × Deloitte L&D pilot</span>
+							</div>
+						</div>
+						<p className="font-sans text-[14px] text-[#ccc] leading-[1.7] mb-4">
+							A two-week curriculum for engineers and PMs new to working with AI. Twelve printable cheatsheets, eight live-session decks, and two long-form primers — all built around <span className="text-white">how LLMs actually work</span> and how to be a calibrated user.
+						</p>
+						<div className="flex flex-wrap gap-3 mb-5">
+							<span className="font-mono text-xs text-[#ec4899]/80 px-2 py-1 rounded bg-[#ec4899]/10">Tokens · Context · RAG</span>
+							<span className="font-mono text-xs text-[#ec4899]/80 px-2 py-1 rounded bg-[#ec4899]/10">Prompt patterns · TDD with agent</span>
+							<span className="font-mono text-xs text-[#ec4899]/80 px-2 py-1 rounded bg-[#ec4899]/10">Cursor modes · Models &amp; spend</span>
+						</div>
+						<Link
+							href="/ai-fundamentals"
+							className="inline-block px-5 py-2.5 rounded-lg bg-[#ec4899] text-white font-sans text-sm font-bold hover:bg-[#db2777]"
+						>
+							Open AI Fundamentals →
+						</Link>
+					</div>
+				</div>
+			</section>
+
+			{/* OSCP VM Labs callout */}
+			<section className="py-16 px-6 border-t border-[#1a1a1a]">
 				<div className="max-w-[720px] mx-auto">
 					<div className="rounded-2xl border border-[#ef4444]/20 bg-[#ef4444]/5 p-8">
 						<div className="flex items-center gap-3 mb-4">
