@@ -77,7 +77,7 @@ export default function ResultsPage() {
 				return;
 			}
 			try {
-				const res = await apiFetch(`/cert/claude-code/quiz/${params.id}/results`);
+				const res = await apiFetch(`/cert/quiz/${params.id}/results`);
 				const data = await res.json();
 				if (data.error) setError(data.error);
 				else setResults(data);

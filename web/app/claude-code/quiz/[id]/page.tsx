@@ -64,7 +64,7 @@ export default function QuizRunner() {
 				return;
 			}
 			try {
-				const res = await apiFetch(`/cert/claude-code/quiz/${quizId}`);
+				const res = await apiFetch(`/cert/quiz/${quizId}`);
 				const data = await res.json();
 				if (data.error) {
 					setError(data.error);
@@ -139,7 +139,7 @@ export default function QuizRunner() {
 		setSubmitting(true);
 		try {
 			const timeMs = Date.now() - startTimeRef.current;
-			const res = await apiFetch(`/cert/claude-code/quiz/${quizId}/answer`, {
+			const res = await apiFetch(`/cert/quiz/${quizId}/answer`, {
 				method: "POST",
 				body: JSON.stringify({ selected, timeMs }),
 			});
@@ -163,7 +163,7 @@ export default function QuizRunner() {
 	}
 
 	async function finish() {
-		await apiFetch(`/cert/claude-code/quiz/${quizId}/complete`, { method: "POST" });
+		await apiFetch(`/cert/quiz/${quizId}/complete`, { method: "POST" });
 		router.push(`/claude-code/quiz/${quizId}/results`);
 	}
 

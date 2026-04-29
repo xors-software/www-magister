@@ -51,7 +51,7 @@ export default function QuizLauncher() {
 
 	useEffect(() => {
 		if (!authChecked) return;
-		apiFetch("/cert/claude-code/scenarios").then((r) => r.json()).then(setScenarios).catch(() => {});
+		apiFetch("/cert/scenarios").then((r) => r.json()).then(setScenarios).catch(() => {});
 		apiFetch("/cert/domains").then((r) => r.json()).then(setDomains).catch(() => {});
 	}, [authChecked]);
 
@@ -63,7 +63,7 @@ export default function QuizLauncher() {
 			if (mode === "exam") body.count = 50;
 			if (mode === "scenario") body.scenario = scenario;
 			if (mode === "domain") body.domain = domain;
-			const res = await apiFetch("/cert/claude-code/quiz", {
+			const res = await apiFetch("/cert/quiz", {
 				method: "POST",
 				body: JSON.stringify(body),
 			});

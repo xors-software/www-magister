@@ -241,7 +241,7 @@ export default function ScenarioDetail() {
 
 	useEffect(() => {
 		if (!file) return;
-		fetch(`/claude-code/scenarios/${file}.md`)
+		fetch(`/scenarios/${file}.md`)
 			.then((r) => r.text())
 			.then((text) => {
 				setMd(text);
