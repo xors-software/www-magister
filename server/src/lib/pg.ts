@@ -70,6 +70,13 @@ export async function runMigrations(): Promise<void> {
 	await sql`
 		ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT
 	`;
+	// Google OAuth: `google_sub` is Google's stable user ID (the `sub` claim
+	// in the ID token). Nullable so password-only users coexist; users who
+	// link Google get this set. Unique so two accounts can't claim the same
+	// Google identity.
+	await sql`
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT UNIQUE
+	`;
 	await sql`
 		CREATE TABLE IF NOT EXISTS auth_sessions (
 			token TEXT PRIMARY KEY,
