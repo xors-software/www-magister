@@ -20,6 +20,7 @@
 // renames at the xors level eventually propagate.
 
 import { sql } from "./pg";
+import { getUserBySession, readSessionToken } from "./auth";
 
 const XORS_API_URL =
 	process.env.XORS_API_URL ||
@@ -179,27 +180,52 @@ async function upsertFromViewer(viewer: XorsViewer): Promise<MagisterUser> {
 }
 
 /**
- * Resolve the current user from the request's xors_session cookie.
- * Returns null if the cookie is missing, the xors viewer fetch fails,
- * or the local upsert fails for any reason.
+ * Resolve the current user. Two paths during the migration window:
  *
- * Routes that need auth check the return value and 401 on null.
+ *   1. xors_session cookie → fetch viewer from api.xors.xyz, upsert local
+ *      (the steady-state for all post-migration users).
+ *   2. reps_session cookie → fall back to the legacy local auth_sessions
+ *      lookup (for users who pre-date xors centralization and haven't
+ *      been manually migrated yet).
+ *
+ * If both are present, xors wins. Returns null if neither resolves —
+ * routes that require auth then 401.
  */
 export async function resolveCurrentUser(
 	headers: Headers,
 ): Promise<MagisterUser | null> {
+	// 1. xors path
 	const sessionKey = readXorsSessionCookie(headers);
-	if (!sessionKey) return null;
-	const viewer = await fetchXorsViewer(sessionKey);
-	if (!viewer) return null;
-	try {
-		return await upsertFromViewer(viewer);
-	} catch (err) {
-		console.error(
-			"[xors] local user upsert failed for viewer",
-			viewer.id,
-			err instanceof Error ? err.message : err,
-		);
-		return null;
+	if (sessionKey) {
+		const viewer = await fetchXorsViewer(sessionKey);
+		if (viewer) {
+			try {
+				return await upsertFromViewer(viewer);
+			} catch (err) {
+				console.error(
+					"[xors] local user upsert failed for viewer",
+					viewer.id,
+					err instanceof Error ? err.message : err,
+				);
+				// Fall through to local — better than 401'ing if local works.
+			}
+		}
 	}
+
+	// 2. legacy local path
+	const repsToken = readSessionToken(headers);
+	if (!repsToken) return null;
+	const localUser = await getUserBySession(repsToken);
+	if (!localUser) return null;
+	return {
+		id: localUser.id,
+		email: localUser.email,
+		displayName: localUser.displayName,
+		createdAt: localUser.createdAt,
+		// Legacy users don't have a xors id yet — they sign in with their
+		// local password, never having authenticated via xors. The empty
+		// string is a flag the rest of the app can ignore (nothing reads
+		// xorsUserId outside this module).
+		xorsUserId: "",
+	};
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { login } from "@/lib/auth";
 import { buildXorsSignInUrl } from "@/lib/xors";
 
 function LoginInner() {
@@ -10,6 +11,7 @@ function LoginInner() {
 	const searchParams = useSearchParams();
 	const next = searchParams.get("next") || undefined;
 	const errorCode = searchParams.get("error");
+	const justReset = searchParams.get("reset") === "ok";
 
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -24,21 +26,11 @@ function LoginInner() {
 		setError("");
 		setLoading(true);
 		try {
-			// POST to the Next.js route handler (not the Bun API). It calls
-			// api.xors.xyz/api/users/authenticate, sets the xors_session
-			// cookie on success, and we navigate from there.
-			const res = await fetch("/api/auth/login", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				credentials: "include",
-				body: JSON.stringify({ email, password }),
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				setError(data.error || "Sign-in failed.");
-				setPassword("");
-				return;
-			}
+			// Bun API does dual-auth: tries local password first, falls
+			// back to api.xors.xyz/api/users/authenticate. Sets either a
+			// reps_session or xors_session cookie based on which path
+			// won. The frontend doesn't care which.
+			await login(email, password);
 			router.push(next || "/claude-code/quiz");
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Sign-in failed.");
@@ -70,6 +62,12 @@ function LoginInner() {
 				{errorMessage && (
 					<div className="mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 font-sans text-sm text-red-400">
 						{errorMessage}
+					</div>
+				)}
+
+				{justReset && (
+					<div className="mb-4 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 font-sans text-sm text-emerald-400">
+						Password reset. Sign in with your new password.
 					</div>
 				)}
 
@@ -136,7 +134,9 @@ function LoginInner() {
 				</form>
 
 				<p className="mt-6 text-center font-sans text-[12px] text-[#555]">
-					Trouble signing in? Ping the project owner.
+					<Link href="/forgot-password" className="text-[#888] hover:text-[#F5B800] underline-offset-4 hover:underline transition-colors">
+						Forgot your password?
+					</Link>
 				</p>
 			</div>
 		</main>
