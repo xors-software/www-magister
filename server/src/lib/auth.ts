@@ -231,13 +231,13 @@ const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "reps_session";
 // Default to Secure cookies — production is the common case. Local dev opts
 // out via SESSION_COOKIE_SECURE=false in server/.env (browsers refuse
 // `Secure` cookies over plain http://localhost).
-const COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE !== "false";
+export const COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE !== "false";
 // Lax is the secure default: cookies sent on same-site requests, including
 // top-level navigations. The web app proxies /api/* through Next.js so all
 // authenticated calls are same-origin from the browser's POV — no need for
 // SameSite=None (which would otherwise be required to opt into cross-site
 // cookies, but is blocked anyway by strict browsers like Safari).
-const COOKIE_SAMESITE = process.env.SESSION_COOKIE_SAMESITE || "Lax";
+export const COOKIE_SAMESITE = process.env.SESSION_COOKIE_SAMESITE || "Lax";
 
 export function buildSessionCookie(token: string): string {
 	const maxAge = SESSION_TTL_DAYS * 24 * 60 * 60;
