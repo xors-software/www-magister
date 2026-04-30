@@ -101,9 +101,99 @@ export async function signupOrLogin(
 		return { kind: "login", user };
 	}
 
-	const ok = await Bun.password.verify(password, row.password_hash);
+	// Wrap verify so a corrupted/legacy hash returns 401 instead of crashing
+	// the request with a 500. We've seen rows where password_hash got mangled
+	// (e.g. set to the literal string 'NULL' by a SQL tool quoting bug) —
+	// Bun.password.verify throws "UnsupportedAlgorithm" on those.
+	let ok = false;
+	try {
+		ok = await Bun.password.verify(password, row.password_hash);
+	} catch (err) {
+		console.error(
+			`[auth] Bun.password.verify threw for user ${row.id} — treat as wrong password. Hash may be corrupted.`,
+			err instanceof Error ? err.message : err,
+		);
+		return { kind: "wrong_password" };
+	}
 	if (!ok) return { kind: "wrong_password" };
 	return { kind: "login", user };
+}
+
+// ---------------------------------------------------------------------------
+// Password reset
+// ---------------------------------------------------------------------------
+//
+// We don't have email infra yet, so the reset URL is logged to stdout. An
+// admin watches Railway logs and shares the link out of band (Slack, etc.).
+// Tokens are single-use, expire after RESET_TTL_MIN, and invalidate every
+// existing session for the user on consumption.
+
+const RESET_TTL_MIN = 60;
+
+export type ResetRequestOutcome =
+	// Always returned to the caller regardless of whether the email exists,
+	// so /forgot-password can't be used to enumerate users. The actual token
+	// (when one was generated) is logged server-side.
+	{ kind: "ok" };
+
+export type ResetConsumeOutcome =
+	| { kind: "ok"; userId: string }
+	| { kind: "invalid_token" }
+	| { kind: "weak_password" };
+
+// Returns the URL the admin should share, or null if no user with that email
+// exists. The /forgot-password endpoint always responds the same way to the
+// caller — only the server log differs.
+export async function createPasswordResetToken(
+	email: string,
+	webBaseUrl: string,
+): Promise<{ url: string; userEmail: string } | null> {
+	const cleaned = email.trim().toLowerCase();
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleaned)) return null;
+	const rows = await sql<{ id: string; email: string }[]>`
+		SELECT id, email FROM users WHERE email = ${cleaned}
+	`;
+	if (rows.length === 0) return null;
+	const userId = rows[0].id;
+	const token = generateToken();
+	const expiresAt = new Date(Date.now() + RESET_TTL_MIN * 60 * 1000).toISOString();
+	await sql`
+		INSERT INTO password_reset_tokens (token, user_id, expires_at)
+		VALUES (${token}, ${userId}, ${expiresAt})
+	`;
+	const trimmed = webBaseUrl.replace(/\/$/, "");
+	const url = `${trimmed}/reset-password?token=${token}`;
+	return { url, userEmail: rows[0].email };
+}
+
+export async function consumePasswordResetToken(
+	token: string,
+	newPassword: string,
+): Promise<ResetConsumeOutcome> {
+	if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD_LEN) {
+		return { kind: "weak_password" };
+	}
+	if (typeof token !== "string" || token.length === 0) {
+		return { kind: "invalid_token" };
+	}
+	const rows = await sql<{ user_id: string }[]>`
+		SELECT user_id FROM password_reset_tokens
+		WHERE token = ${token}
+		  AND used_at IS NULL
+		  AND expires_at > NOW()
+	`;
+	if (rows.length === 0) return { kind: "invalid_token" };
+	const userId = rows[0].user_id;
+	const hash = await Bun.password.hash(newPassword, { algorithm: "argon2id" });
+	// Atomic-ish: mark token used, set new password, invalidate every session
+	// for this user. If anyone else was logged in as this account, they're
+	// kicked out — standard post-reset hygiene.
+	await sql.begin(async (tx) => {
+		await tx`UPDATE password_reset_tokens SET used_at = NOW() WHERE token = ${token}`;
+		await tx`UPDATE users SET password_hash = ${hash} WHERE id = ${userId}`;
+		await tx`DELETE FROM auth_sessions WHERE user_id = ${userId}`;
+	});
+	return { kind: "ok", userId };
 }
 
 export async function createSession(userId: string): Promise<AuthSession> {
