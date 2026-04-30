@@ -56,7 +56,7 @@ function LoginInner() {
 
 				<h1 className="font-serif text-[32px] font-bold text-white tracking-[-0.02em] mb-2">Sign in</h1>
 				<p className="font-sans text-[14px] text-[#888] mb-8 leading-[1.6]">
-					Magister uses your XORS account. Sign in with Google or your email + password — your access is shared with the rest of the XORS apps. New here? Your account is created on first sign-in.
+					Reps uses your XORS account. Sign in with Google or your email + password — your access is shared with the rest of the XORS apps. New here? Your account is created on first sign-in.
 				</p>
 
 				{errorMessage && (

@@ -185,7 +185,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
 		const user = await getUserBySession(token);
 		if (!user) {
 			set.status = 401;
-			return { error: "Sign in with your Magister password to view recovery code status." };
+			return { error: "Sign in with your Reps password to view recovery code status." };
 		}
 		return await getRecoveryCodesStatus(user.id);
 	})
@@ -194,7 +194,7 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
 		const user = await getUserBySession(token);
 		if (!user) {
 			set.status = 401;
-			return { error: "Sign in with your Magister password to generate recovery codes." };
+			return { error: "Sign in with your Reps password to generate recovery codes." };
 		}
 		const result = await generateRecoveryCodes(user.id);
 		if (result.kind === "user_not_found") {

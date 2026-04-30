@@ -99,7 +99,7 @@ export default function CourseJoinPage() {
 			<div className="w-full max-w-[480px]">
 				<Link href="/" className="block mb-10">
 					<div className="font-sans text-[13px] font-medium text-[#555] tracking-[0.06em] uppercase">
-						Magister
+						Reps
 					</div>
 				</Link>
 

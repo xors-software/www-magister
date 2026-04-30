@@ -1,6 +1,6 @@
 {
 	"name": "web",
-	"description": "Magister landing page — AI-powered tutoring diagnostic engine.",
+	"description": "Reps — Anthropic Claude Code certification prep, scenario-based AI tutoring and mock exams.",
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {

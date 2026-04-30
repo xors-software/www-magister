@@ -247,7 +247,7 @@ export default function SessionPage() {
 				<div className="flex items-center gap-3">
 					<span className="font-sans text-xs font-bold text-[#F5B800] tracking-[0.08em] uppercase">XORS</span>
 					<span className="text-[#333] font-sans text-[10px]">/</span>
-					<span className="font-sans text-xs font-medium text-[#888]">Magister</span>
+					<span className="font-sans text-xs font-medium text-[#888]">Reps</span>
 					<span className="w-px h-4 bg-[#2a2a2a]" />
 					<span className="font-sans text-xs font-semibold px-2 py-0.5 rounded" style={{ color: accentColor, backgroundColor: accentColor + "15" }}>
 						{certLabel}
