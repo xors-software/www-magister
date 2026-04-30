@@ -1,9 +1,9 @@
 // Client-side helpers for the cookie-based session auth.
 //
-// All Reps API requests MUST include credentials so the session cookie
-// rides along on cross-origin calls. Use `apiFetch` everywhere.
-
-export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+// All API calls go through Next.js's /api/* rewrite (see next.config.js),
+// so they're same-origin from the browser's POV. That keeps the session
+// cookie working under SameSite=Lax across all browsers, including the
+// strict ones (Safari ITP, Brave, Firefox) that block third-party cookies.
 
 export type User = {
 	id: string;
@@ -16,7 +16,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 	if (init.body && !headers.has("Content-Type")) {
 		headers.set("Content-Type", "application/json");
 	}
-	return fetch(`${API}${path}`, {
+	return fetch(`/api${path}`, {
 		...init,
 		credentials: "include",
 		headers,
