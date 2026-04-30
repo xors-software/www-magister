@@ -210,10 +210,25 @@ export async function generateQuestions(
 	};
 	const inserted: CertQuestion[] = [];
 	for (const row of rows) {
-		// Light validation: require exactly 4 choices with distinct keys.
+		// Validation: require exactly 4 choices, each shaped {key, text} with
+		// distinct A-D keys and non-empty string text. We've seen the model
+		// occasionally emit nested/object-shaped choices that would crash the
+		// frontend renderer; reject anything that doesn't match the shape we
+		// promise downstream. The render-time validator in cert-quizzes.ts
+		// catches anything that still slips through.
 		if (!Array.isArray(row.choices) || row.choices.length !== 4) continue;
-		const keys = new Set(row.choices.map((c) => c.key));
-		if (keys.size !== 4 || !["A", "B", "C", "D"].every((k) => keys.has(k as "A" | "B" | "C" | "D"))) continue;
+		const keys = new Set<string>();
+		let badShape = false;
+		for (const c of row.choices) {
+			if (!c || typeof c !== "object") { badShape = true; break; }
+			if (typeof c.key !== "string" || typeof c.text !== "string" || c.text.length === 0) {
+				badShape = true;
+				break;
+			}
+			keys.add(c.key);
+		}
+		if (badShape) continue;
+		if (keys.size !== 4 || !["A", "B", "C", "D"].every((k) => keys.has(k))) continue;
 		if (!["A", "B", "C", "D"].includes(row.correct)) continue;
 
 		const id = `gen_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
