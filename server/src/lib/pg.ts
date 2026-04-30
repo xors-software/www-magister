@@ -159,5 +159,30 @@ export async function runMigrations(): Promise<void> {
 		CREATE INDEX IF NOT EXISTS password_reset_tokens_user_idx
 			ON password_reset_tokens(user_id, created_at DESC)
 	`;
+	// Self-serve password recovery without admin involvement: at any point
+	// the user can generate 8 recovery codes (shown once, hashed at rest),
+	// save them, and use one to reset their password later if they get
+	// locked out. Each code is single-use. Generating a fresh batch wipes
+	// any previous unused codes for the same user — only one set is valid
+	// at a time.
+	await sql`
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_codes_generated_at TIMESTAMPTZ
+	`;
+	await sql`
+		CREATE TABLE IF NOT EXISTS recovery_codes (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			code_hash TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			used_at TIMESTAMPTZ
+		)
+	`;
+	// Partial index over only-unused rows; reset attempts always filter on
+	// used_at IS NULL so this stays small even if a user has cycled through
+	// many sets over time.
+	await sql`
+		CREATE INDEX IF NOT EXISTS recovery_codes_user_unused_idx
+			ON recovery_codes(user_id) WHERE used_at IS NULL
+	`;
 	migrated = true;
 }

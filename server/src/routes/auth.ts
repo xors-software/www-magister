@@ -25,6 +25,12 @@ import {
 	STATE_COOKIE,
 	VERIFIER_COOKIE,
 } from "../lib/google-oauth";
+import {
+	consumeRecoveryCodeAndResetPassword,
+	formatCodeForDisplay,
+	generateRecoveryCodes,
+	getRecoveryCodesStatus,
+} from "../lib/recovery-codes";
 
 // Where reset URLs point. Logged with the token so an admin can paste a
 // working link straight into Slack. Falls back to a placeholder so missing
@@ -269,6 +275,65 @@ export const authRoutes = new Elysia({ prefix: "/auth" })
 				code: t.Optional(t.String()),
 				state: t.Optional(t.String()),
 				error: t.Optional(t.String()),
+			}),
+		},
+	)
+	// ---- Recovery codes ----
+	// Self-serve password reset path: a logged-in user generates 8 codes
+	// they save somewhere, and later uses one (no admin involvement) to
+	// reset their password if they get locked out. See recovery-codes.ts
+	// for the protocol details.
+	.get("/recovery-codes/status", async ({ request, set }) => {
+		const token = readSessionToken(request.headers);
+		const user = await getUserBySession(token);
+		if (!user) {
+			set.status = 401;
+			return { error: "Sign in to view recovery code status." };
+		}
+		return await getRecoveryCodesStatus(user.id);
+	})
+	.post("/recovery-codes/generate", async ({ request, set }) => {
+		const token = readSessionToken(request.headers);
+		const user = await getUserBySession(token);
+		if (!user) {
+			set.status = 401;
+			return { error: "Sign in to generate recovery codes." };
+		}
+		const result = await generateRecoveryCodes(user.id);
+		if (result.kind === "user_not_found") {
+			set.status = 404;
+			return { error: "User not found." };
+		}
+		// Display-format here so the frontend doesn't need to know the
+		// chunking. Plaintext codes are returned exactly once — they're
+		// hashed at rest and unrecoverable from this point on.
+		return { codes: result.codes.map(formatCodeForDisplay) };
+	})
+	.post(
+		"/recovery-code-reset",
+		async ({ body, set }) => {
+			const result = await consumeRecoveryCodeAndResetPassword(
+				body.email,
+				body.code,
+				body.password,
+			);
+			if (result.kind === "weak_password") {
+				set.status = 400;
+				return { error: "Password must be at least 8 characters." };
+			}
+			if (result.kind === "invalid") {
+				// Generic so callers can't tell which of email/code is wrong
+				// (don't enable enumeration).
+				set.status = 400;
+				return { error: "That email + code combination didn't match." };
+			}
+			return { ok: true };
+		},
+		{
+			body: t.Object({
+				email: t.String({ minLength: 3 }),
+				code: t.String({ minLength: 1 }),
+				password: t.String({ minLength: 1 }),
 			}),
 		},
 	);
