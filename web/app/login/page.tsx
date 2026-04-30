@@ -1,38 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import { login } from "@/lib/auth";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { buildXorsSignInUrl } from "@/lib/xors";
 
 function LoginInner() {
-	const router = useRouter();
 	const searchParams = useSearchParams();
-	const next = searchParams.get("next") || "/claude-code/quiz";
-	const justReset = searchParams.get("reset") === "ok";
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [name, setName] = useState("");
-	const [error, setError] = useState("");
-	const [loading, setLoading] = useState(false);
+	const next = searchParams.get("next") || undefined;
+	const errorCode = searchParams.get("error");
 
-	async function onSubmit(e: React.FormEvent) {
-		e.preventDefault();
-		setError("");
-		setLoading(true);
-		try {
-			await login(email, password, name || undefined);
-			router.push(next);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Login failed");
-			setPassword("");
-		} finally {
-			setLoading(false);
-		}
-	}
-
-	const passwordOk = password.length >= 8;
-	const canSubmit = email.length > 3 && passwordOk && !loading;
+	const errorMessage = errorMessageForCode(errorCode);
+	const signInUrl = buildXorsSignInUrl(next);
 
 	return (
 		<main className="min-h-dvh bg-[#0a0a0a] text-[#e8e8e8] flex items-center justify-center px-4">
@@ -47,22 +26,21 @@ function LoginInner() {
 
 				<h1 className="font-serif text-[32px] font-bold text-white tracking-[-0.02em] mb-2">Sign in</h1>
 				<p className="font-sans text-[14px] text-[#888] mb-8 leading-[1.6]">
-					Sign in with Google to get started. Have an old password account? Use the email + password form below.
+					Magister uses your XORS account. Sign in with Google to continue — your access is shared with the rest of the XORS apps.
 				</p>
 
-				{justReset && (
-					<div className="mb-3 px-4 py-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 font-sans text-sm text-emerald-400">
-						Password reset. Sign in with your new password.
+				{errorMessage && (
+					<div className="mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 font-sans text-sm text-red-400">
+						{errorMessage}
 					</div>
 				)}
 
-				{/* Primary CTA: Google. Renders as a regular link (not a form
-				    submit) because it's a top-level navigation to the OAuth
-				    start endpoint, not a fetch — that way the state cookie
-				    set by the server arrives with the response and persists
-				    for the callback round-trip. */}
+				{/* Plain anchor — top-level navigation through api.xors.xyz.
+				    The OAuth start endpoint there sets state cookies on its
+				    own domain, redirects to Google, and bounces back to our
+				    /oauth callback with the encrypted session key. */}
 				<a
-					href={`/api/auth/google/start${next !== "/claude-code/quiz" ? `?next=${encodeURIComponent(next)}` : ""}`}
+					href={signInUrl}
 					className="flex items-center justify-center gap-3 w-full py-3.5 rounded-xl bg-white text-[#1f1f1f] font-sans text-[15px] font-bold transition-colors hover:bg-[#eaeaea]"
 				>
 					<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -74,71 +52,27 @@ function LoginInner() {
 					Sign in with Google
 				</a>
 
-				<div className="my-6 flex items-center gap-3">
-					<div className="flex-1 h-px bg-[#1a1a1a]"></div>
-					<span className="font-sans text-[11px] text-[#444] uppercase tracking-[0.1em]">or with password</span>
-					<div className="flex-1 h-px bg-[#1a1a1a]"></div>
-				</div>
-
-				<form onSubmit={onSubmit} className="space-y-3">
-					<div>
-						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Email</label>
-						<input
-							type="email"
-							required
-							autoFocus
-							autoComplete="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							placeholder="you@lazer.com"
-							className="w-full px-4 py-3 rounded-xl bg-[#111] border border-[#1a1a1a] focus:border-[#F5B800] outline-none font-sans text-[14px] text-white placeholder:text-[#444]"
-						/>
-					</div>
-					<div>
-						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Password</label>
-						<input
-							type="password"
-							required
-							autoComplete="current-password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							placeholder="At least 8 characters"
-							className="w-full px-4 py-3 rounded-xl bg-[#111] border border-[#1a1a1a] focus:border-[#F5B800] outline-none font-sans text-[14px] text-white placeholder:text-[#444]"
-						/>
-						{password.length > 0 && !passwordOk && (
-							<p className="mt-1.5 font-sans text-[11px] text-[#666]">{8 - password.length} more character{8 - password.length === 1 ? "" : "s"}</p>
-						)}
-					</div>
-					<div>
-						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Display name <span className="text-[#333] normal-case">(optional, new accounts only)</span></label>
-						<input
-							type="text"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							placeholder="Your name"
-							className="w-full px-4 py-3 rounded-xl bg-[#111] border border-[#1a1a1a] focus:border-[#F5B800] outline-none font-sans text-[14px] text-white placeholder:text-[#444]"
-						/>
-					</div>
-					{error && (
-						<div className="px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 font-sans text-sm text-red-400">{error}</div>
-					)}
-					<button
-						type="submit"
-						disabled={!canSubmit}
-						className="w-full py-3.5 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold transition-colors hover:bg-[#e0a800] disabled:opacity-40 disabled:cursor-not-allowed"
-					>
-						{loading ? "Signing in…" : "Sign in"}
-					</button>
-				</form>
-
 				<p className="mt-6 text-center font-sans text-[12px] text-[#555]">
-					<Link href="/forgot-password" className="text-[#888] hover:text-[#F5B800] underline-offset-4 hover:underline transition-colors">
-						Forgot your password?
-					</Link>
+					Trouble signing in? Ping the project owner.
 				</p>
 			</div>
 		</main>
 	);
+}
+
+function errorMessageForCode(code: string | null): string | null {
+	switch (code) {
+		case null:
+			return null;
+		case "oauth_no_key":
+			return "Sign-in didn't complete. The redirect from Google was missing the session key. Try again.";
+		case "oauth_decrypt":
+			return "Couldn't verify the sign-in response. Try again — if it keeps happening, ping the project owner.";
+		case "oauth_empty_key":
+			return "Sign-in returned an empty session. Try again.";
+		default:
+			return "Sign-in failed. Try again.";
+	}
 }
 
 export default function LoginPage() {

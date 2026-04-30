@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import { getUserBySession, readSessionToken } from "../lib/auth";
+import { resolveCurrentUser } from "../lib/xors-identity";
 import {
 	FUNDAMENTALS_QUESTION_BANK,
 	getFundamentalsQuestionsByTopic,
@@ -48,8 +48,7 @@ function revealQuestion(
 
 export const fundamentalsRoutes = new Elysia({ prefix: "/fundamentals" })
 	.derive(async ({ request }) => {
-		const token = readSessionToken(request.headers);
-		const user = await getUserBySession(token);
+		const user = await resolveCurrentUser(request.headers);
 		return { userId: user?.id ?? null, user };
 	})
 	.get("/topics", () => {
