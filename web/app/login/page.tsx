@@ -1,17 +1,55 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { buildXorsSignInUrl } from "@/lib/xors";
 
 function LoginInner() {
+	const router = useRouter();
 	const searchParams = useSearchParams();
 	const next = searchParams.get("next") || undefined;
 	const errorCode = searchParams.get("error");
 
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
+
 	const errorMessage = errorMessageForCode(errorCode);
 	const signInUrl = buildXorsSignInUrl(next);
+
+	async function onSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		setError("");
+		setLoading(true);
+		try {
+			// POST to the Next.js route handler (not the Bun API). It calls
+			// api.xors.xyz/api/users/authenticate, sets the xors_session
+			// cookie on success, and we navigate from there.
+			const res = await fetch("/api/auth/login", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify({ email, password }),
+			});
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				setError(data.error || "Sign-in failed.");
+				setPassword("");
+				return;
+			}
+			router.push(next || "/claude-code/quiz");
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Sign-in failed.");
+			setPassword("");
+		} finally {
+			setLoading(false);
+		}
+	}
+
+	const passwordOk = password.length >= 8;
+	const canSubmit = email.length > 3 && passwordOk && !loading;
 
 	return (
 		<main className="min-h-dvh bg-[#0a0a0a] text-[#e8e8e8] flex items-center justify-center px-4">
@@ -26,7 +64,7 @@ function LoginInner() {
 
 				<h1 className="font-serif text-[32px] font-bold text-white tracking-[-0.02em] mb-2">Sign in</h1>
 				<p className="font-sans text-[14px] text-[#888] mb-8 leading-[1.6]">
-					Magister uses your XORS account. Sign in with Google to continue — your access is shared with the rest of the XORS apps.
+					Magister uses your XORS account. Sign in with Google or your email + password — your access is shared with the rest of the XORS apps. New here? Your account is created on first sign-in.
 				</p>
 
 				{errorMessage && (
@@ -35,10 +73,9 @@ function LoginInner() {
 					</div>
 				)}
 
-				{/* Plain anchor — top-level navigation through api.xors.xyz.
-				    The OAuth start endpoint there sets state cookies on its
-				    own domain, redirects to Google, and bounces back to our
-				    /oauth callback with the encrypted session key. */}
+				{/* Primary CTA: Google. Plain anchor — top-level navigation
+				    through api.xors.xyz handles the OAuth dance and bounces
+				    back to our /oauth callback. */}
 				<a
 					href={signInUrl}
 					className="flex items-center justify-center gap-3 w-full py-3.5 rounded-xl bg-white text-[#1f1f1f] font-sans text-[15px] font-bold transition-colors hover:bg-[#eaeaea]"
@@ -51,6 +88,52 @@ function LoginInner() {
 					</svg>
 					Sign in with Google
 				</a>
+
+				<div className="my-6 flex items-center gap-3">
+					<div className="flex-1 h-px bg-[#1a1a1a]"></div>
+					<span className="font-sans text-[11px] text-[#444] uppercase tracking-[0.1em]">or with password</span>
+					<div className="flex-1 h-px bg-[#1a1a1a]"></div>
+				</div>
+
+				<form onSubmit={onSubmit} className="space-y-3">
+					<div>
+						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Email</label>
+						<input
+							type="email"
+							required
+							autoComplete="email"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							placeholder="you@lazer.com"
+							className="w-full px-4 py-3 rounded-xl bg-[#111] border border-[#1a1a1a] focus:border-[#F5B800] outline-none font-sans text-[14px] text-white placeholder:text-[#444]"
+						/>
+					</div>
+					<div>
+						<label className="block font-sans text-[11px] font-semibold text-[#555] uppercase tracking-[0.08em] mb-1.5">Password</label>
+						<input
+							type="password"
+							required
+							autoComplete="current-password"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							placeholder="At least 8 characters"
+							className="w-full px-4 py-3 rounded-xl bg-[#111] border border-[#1a1a1a] focus:border-[#F5B800] outline-none font-sans text-[14px] text-white placeholder:text-[#444]"
+						/>
+						{password.length > 0 && !passwordOk && (
+							<p className="mt-1.5 font-sans text-[11px] text-[#666]">{8 - password.length} more character{8 - password.length === 1 ? "" : "s"}</p>
+						)}
+					</div>
+					{error && (
+						<div className="px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 font-sans text-sm text-red-400">{error}</div>
+					)}
+					<button
+						type="submit"
+						disabled={!canSubmit}
+						className="w-full py-3.5 rounded-xl bg-[#F5B800] text-black font-sans text-[15px] font-bold transition-colors hover:bg-[#e0a800] disabled:opacity-40 disabled:cursor-not-allowed"
+					>
+						{loading ? "Signing in…" : "Sign in"}
+					</button>
+				</form>
 
 				<p className="mt-6 text-center font-sans text-[12px] text-[#555]">
 					Trouble signing in? Ping the project owner.
