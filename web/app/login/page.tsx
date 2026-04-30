@@ -54,10 +54,7 @@ function LoginInner() {
 					</div>
 				</Link>
 
-				<h1 className="font-serif text-[32px] font-bold text-white tracking-[-0.02em] mb-2">Sign in</h1>
-				<p className="font-sans text-[14px] text-[#888] mb-8 leading-[1.6]">
-					Reps uses your XORS account. Sign in with Google or your email + password — your access is shared with the rest of the XORS apps. New here? Your account is created on first sign-in.
-				</p>
+				<h1 className="font-serif text-[32px] font-bold text-white tracking-[-0.02em] mb-8">Sign in</h1>
 
 				{errorMessage && (
 					<div className="mb-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 font-sans text-sm text-red-400">
