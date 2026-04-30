@@ -24,7 +24,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 	const key = url.searchParams.get("key");
 	const nextHint = url.searchParams.get("next_hint");
 
-	const baseUrl = `${url.protocol}//${url.host}`;
+	// Behind Railway's reverse proxy, `request.url` reflects the internal
+	// `localhost:8080`, not the public host. Read the forwarded headers
+	// first (and fall back to `Host`) so redirects we emit point at the
+	// real origin the user is on. Same pattern contractor-tracker uses.
+	const host =
+		request.headers.get("x-forwarded-host") ||
+		request.headers.get("host") ||
+		url.host;
+	const protocol =
+		request.headers.get("x-forwarded-proto") ||
+		url.protocol.replace(/:$/, "");
+	const baseUrl = `${protocol}://${host}`;
+
 	const loginRedirect = (errorCode: string) => {
 		const u = new URL("/login", baseUrl);
 		u.searchParams.set("error", errorCode);
