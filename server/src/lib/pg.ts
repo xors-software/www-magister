@@ -77,6 +77,18 @@ export async function runMigrations(): Promise<void> {
 	await sql`
 		ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT UNIQUE
 	`;
+	// XORS centralized identity: `xors_user_id` is the viewer.id from
+	// api.xors.xyz. Set on first sign-in via the /oauth callback (matched
+	// by email for legacy rows). Unique so two Magister rows can't claim
+	// the same xors identity. Email is nullable now because xors users
+	// don't always have emails (some authenticate via wallet); we treat
+	// xors_user_id as the canonical identity.
+	await sql`
+		ALTER TABLE users ADD COLUMN IF NOT EXISTS xors_user_id TEXT UNIQUE
+	`;
+	await sql`
+		ALTER TABLE users ALTER COLUMN email DROP NOT NULL
+	`;
 	await sql`
 		CREATE TABLE IF NOT EXISTS auth_sessions (
 			token TEXT PRIMARY KEY,

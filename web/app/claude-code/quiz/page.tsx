@@ -117,7 +117,6 @@ export default function QuizLauncher() {
 					{me && (
 						<div className="flex items-center gap-3">
 							<span className="font-sans text-[12px] text-[#666]">{me.displayName || me.email}</span>
-							<Link href="/account/recovery-codes" className="font-sans text-[12px] text-[#555] hover:text-white">Recovery codes</Link>
 							<button type="button" onClick={handleLogout} className="font-sans text-[12px] text-[#555] hover:text-white">Sign out</button>
 						</div>
 					)}

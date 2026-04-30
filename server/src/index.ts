@@ -21,6 +21,16 @@ console.log(
 	process.env.CORS_ORIGIN ?? "(unset)",
 	"PORT=",
 	process.env.PORT ?? "(unset)",
+	// XORS centralized identity. Without API_AES_KEY + API_IV_KEY the
+	// /oauth callback can't decrypt session keys from api.xors.xyz, so
+	// every sign-in attempt fails with `oauth_decrypt`. Loud log on boot
+	// makes a missing var obvious in Railway logs.
+	"API_AES_KEY=",
+	process.env.API_AES_KEY ? "set" : "MISSING",
+	"API_IV_KEY=",
+	process.env.API_IV_KEY ? "set" : "MISSING",
+	"XORS_API_URL=",
+	process.env.XORS_API_URL ?? "(default https://api.xors.xyz)",
 );
 
 // Run schema migrations on startup. Retries on transient errors (Railway
