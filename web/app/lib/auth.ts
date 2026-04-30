@@ -76,3 +76,41 @@ export async function resetPassword(token: string, password: string): Promise<vo
 		throw new Error(data.error || "Reset failed");
 	}
 }
+
+export interface RecoveryCodesStatus {
+	hasCodes: boolean;
+	generatedAt: string | null;
+	unusedCount: number;
+	usedCount: number;
+}
+
+export async function getRecoveryCodesStatus(): Promise<RecoveryCodesStatus | null> {
+	const res = await apiFetch("/auth/recovery-codes/status");
+	if (!res.ok) return null;
+	return (await res.json()) as RecoveryCodesStatus;
+}
+
+export async function generateRecoveryCodes(): Promise<string[]> {
+	const res = await apiFetch("/auth/recovery-codes/generate", { method: "POST" });
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}));
+		throw new Error(data.error || "Couldn't generate recovery codes");
+	}
+	const data = (await res.json()) as { codes: string[] };
+	return data.codes;
+}
+
+export async function resetWithRecoveryCode(
+	email: string,
+	code: string,
+	password: string,
+): Promise<void> {
+	const res = await apiFetch("/auth/recovery-code-reset", {
+		method: "POST",
+		body: JSON.stringify({ email, code, password }),
+	});
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}));
+		throw new Error(data.error || "Reset failed");
+	}
+}
