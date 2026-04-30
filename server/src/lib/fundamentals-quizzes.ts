@@ -53,10 +53,12 @@ export async function createFundamentalsQuiz(
 
 	const id = generateId();
 	const startedAt = new Date().toISOString();
+	// Pass `config` directly — see cert-generation.ts for why JSON.stringify
+	// here would double-encode the JSONB value.
 	await sql`
 		INSERT INTO quizzes (id, user_id, track, config, question_ids, current_index, started_at, time_limit_seconds)
 		VALUES (
-			${id}, ${userId}, ${TRACK}, ${JSON.stringify(config)}::jsonb,
+			${id}, ${userId}, ${TRACK}, ${config}::jsonb,
 			${selectedIds}::text[], 0, ${startedAt}, ${config.timeLimitSeconds ?? null}
 		)
 	`;
