@@ -232,6 +232,12 @@ export async function generateQuestions(
 		if (!["A", "B", "C", "D"].includes(row.correct)) continue;
 
 		const id = `gen_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+		// IMPORTANT: don't JSON.stringify() parameters bound to a JSONB column.
+		// The `postgres` library serializes JS objects/arrays for JSONB columns
+		// itself; wrapping them in JSON.stringify() first produces a JSON string
+		// scalar containing escaped JSON (string-of-JSON, not the JSON value).
+		// We had this bug in prod for months — fixed in fix/jsonb-double-encoding,
+		// existing rows recovered with `(col #>> '{}')::jsonb`.
 		await sql`
 			INSERT INTO generated_questions (
 				id, scenario, domain, tasks, mode, difficulty,
@@ -239,10 +245,10 @@ export async function generateQuestions(
 				study_tags, generated_for_user_id, generation_context
 			) VALUES (
 				${id}, ${scenario}, ${domain}, ${row.tasks ?? []}::text[], 'canonical', ${row.difficulty ?? "medium"},
-				${row.stem}, ${JSON.stringify(row.choices)}::jsonb, ${row.correct},
-				${row.explanation}, ${JSON.stringify(row.distractor_rationales ?? {})}::jsonb,
+				${row.stem}, ${row.choices}::jsonb, ${row.correct},
+				${row.explanation}, ${row.distractor_rationales ?? {}}::jsonb,
 				${row.study_tags ?? []}::text[],
-				${options.userId ?? null}, ${JSON.stringify(generationContext)}::jsonb
+				${options.userId ?? null}, ${generationContext}::jsonb
 			)
 		`;
 		inserted.push({
