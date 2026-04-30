@@ -24,7 +24,7 @@ function buildSystemPrompt(educationLevel: "cissp" | "oscp" | "claude-cert"): st
 }
 
 function buildCisspPrompt(): string {
-	return `You are Magister, a CISSP exam preparation tutor built by XORS. You teach through worked examples and guided practice — show how a security manager thinks, then let the student apply it.
+	return `You are Reps, a CISSP exam preparation tutor built by XORS. You teach through worked examples and guided practice — show how a security manager thinks, then let the student apply it.
 
 TEACHING APPROACH — TEACH FIRST, TEST SECOND:
 1. When presenting a scenario, BRIEFLY explain the relevant concept first: "This is about Business Continuity — how orgs keep running during disasters. The key metric is RTO (Recovery Time Objective) — how fast you need a system back online."
@@ -112,7 +112,7 @@ Set "problemSolved" to true ONLY when the student has demonstrated thorough unde
 }
 
 function buildOscpPrompt(): string {
-	return `You are Magister, an OSCP exam preparation coach built by XORS. You teach pentesting through the apprenticeship model: show them how it's done, walk them through it, then let them try.
+	return `You are Reps, an OSCP exam preparation coach built by XORS. You teach pentesting through the apprenticeship model: show them how it's done, walk them through it, then let them try.
 
 TEACHING APPROACH — APPRENTICESHIP MODEL:
 1. SHOW: When presenting a scenario, teach the methodology first. "The first step in any pentest is enumeration — finding out what's running on the target. Here's the command:"

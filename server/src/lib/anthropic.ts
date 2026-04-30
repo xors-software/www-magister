@@ -11,7 +11,7 @@ function buildSystemPrompt(courseName: string, materials: CourseMaterial[]): str
 		.map((m) => `### ${m.title}\n${m.content}`)
 		.join("\n\n---\n\n");
 
-	return `You are Magister, an AI tutor for the course "${courseName}". You help students understand the course materials through clear explanation and Socratic questioning.
+	return `You are Reps, an AI tutor for the course "${courseName}". You help students understand the course materials through clear explanation and Socratic questioning.
 
 COURSE MATERIALS:
 ${materialsBlock}

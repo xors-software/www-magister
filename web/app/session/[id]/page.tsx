@@ -155,7 +155,7 @@ export default function SessionPage() {
 			{/* Header */}
 			<header className="shrink-0 border-b border-[#2a2a2a] px-4 py-3 flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<span className="font-sans text-xs font-semibold text-[#4f9cf7] tracking-[0.06em] uppercase">Magister</span>
+					<span className="font-sans text-xs font-semibold text-[#4f9cf7] tracking-[0.06em] uppercase">Reps</span>
 					<span className="w-px h-4 bg-[#2a2a2a]" />
 					{course && (
 						<>
