@@ -1,6 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Same-origin proxy to the API. Browsers (Safari, Brave, Chrome incognito,
+  // Firefox-strict) drop third-party Set-Cookie when web and API live on
+  // separate sites — `*.up.railway.app` is a public suffix, so subdomain
+  // splits count as cross-site. Routing /api/* through Next.js makes the
+  // browser see one origin; the session cookie sticks under SameSite=Lax.
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${process.env.API_URL || "http://localhost:8080"}/:path*`,
+      },
+    ];
+  },
   async redirects() {
     // The original flat URLs are kept alive so bookmarks/links from before
     // the cert-namespacing don't 404. Permanent so search engines update.

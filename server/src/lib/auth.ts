@@ -142,13 +142,12 @@ const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || "reps_session";
 // out via SESSION_COOKIE_SECURE=false in server/.env (browsers refuse
 // `Secure` cookies over plain http://localhost).
 const COOKIE_SECURE = process.env.SESSION_COOKIE_SECURE !== "false";
-// On HTTPS the web and API may live on different subdomains under a public
-// suffix (teacher.up.railway.app vs teacher-api.up.railway.app are
-// cross-site for cookie purposes). SameSite=None+Secure lets the cookie
-// ride along; Lax breaks login. Lax is fine on plain-HTTP localhost.
-const COOKIE_SAMESITE =
-	process.env.SESSION_COOKIE_SAMESITE ||
-	(COOKIE_SECURE ? "None" : "Lax");
+// Lax is the secure default: cookies sent on same-site requests, including
+// top-level navigations. The web app proxies /api/* through Next.js so all
+// authenticated calls are same-origin from the browser's POV — no need for
+// SameSite=None (which would otherwise be required to opt into cross-site
+// cookies, but is blocked anyway by strict browsers like Safari).
+const COOKIE_SAMESITE = process.env.SESSION_COOKIE_SAMESITE || "Lax";
 
 export function buildSessionCookie(token: string): string {
 	const maxAge = SESSION_TTL_DAYS * 24 * 60 * 60;
