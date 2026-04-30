@@ -56,3 +56,23 @@ export async function login(
 export async function logout(): Promise<void> {
 	await apiFetch("/auth/logout", { method: "POST" });
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+	// Server always returns 200 regardless of whether the email is known —
+	// don't leak account existence on the client either. We discard the body.
+	await apiFetch("/auth/forgot-password", {
+		method: "POST",
+		body: JSON.stringify({ email }),
+	});
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+	const res = await apiFetch("/auth/reset-password", {
+		method: "POST",
+		body: JSON.stringify({ token, password }),
+	});
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}));
+		throw new Error(data.error || "Reset failed");
+	}
+}

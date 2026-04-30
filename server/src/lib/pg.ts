@@ -136,5 +136,21 @@ export async function runMigrations(): Promise<void> {
 		CREATE INDEX IF NOT EXISTS generated_questions_scope_idx
 			ON generated_questions(scenario, domain, generated_for_user_id)
 	`;
+	// Single-use password reset tokens. We don't have email infra yet, so
+	// the URL is logged to stdout — an admin watches Railway logs and shares
+	// the link out of band (Slack/etc). Tokens expire after RESET_TTL_MIN.
+	await sql`
+		CREATE TABLE IF NOT EXISTS password_reset_tokens (
+			token TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			expires_at TIMESTAMPTZ NOT NULL,
+			used_at TIMESTAMPTZ
+		)
+	`;
+	await sql`
+		CREATE INDEX IF NOT EXISTS password_reset_tokens_user_idx
+			ON password_reset_tokens(user_id, created_at DESC)
+	`;
 	migrated = true;
 }
