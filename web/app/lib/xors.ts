@@ -137,3 +137,34 @@ export async function fetchXorsViewer(sessionKey: string): Promise<XorsViewer | 
 		return null;
 	}
 }
+
+/**
+ * Email + password sign-in via api.xors.xyz/api/users/authenticate. The
+ * xors endpoint also auto-creates the account if the email is new — same
+ * find-or-create behavior as the OAuth flow — so this serves as both
+ * sign-in and sign-up.
+ *
+ * Returns the user's xors session key on success. Caller is responsible
+ * for setting the `xors_session` cookie with that value.
+ */
+export async function authenticateEmailPassword(
+	email: string,
+	password: string,
+): Promise<{ key: string } | { error: string }> {
+	const res = await fetch(`${getXorsApiUrl()}/api/users/authenticate`, {
+		method: "POST",
+		headers: { Accept: "application/json", "Content-Type": "application/json" },
+		body: JSON.stringify({ email, password, source: getXorsAuthSource() }),
+		cache: "no-store",
+	});
+	let body: { user?: { key?: string }; error?: boolean; message?: string };
+	try {
+		body = await res.json();
+	} catch {
+		return { error: "Couldn't reach the auth service. Try again." };
+	}
+	if (!res.ok || !body.user?.key) {
+		return { error: body.message || "Invalid email or password." };
+	}
+	return { key: body.user.key };
+}
