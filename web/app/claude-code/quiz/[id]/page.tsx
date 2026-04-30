@@ -191,6 +191,23 @@ export default function QuizRunner() {
 		);
 	}
 
+	// Defense in depth — server already filters malformed questions, but if
+	// one slips through (or `nextQuestion` from /answer is malformed), don't
+	// crash the entire app on `choices.map`. Show a useful error instead.
+	if (!Array.isArray(question.choices) || question.choices.length !== 4) {
+		return (
+			<main className="min-h-dvh bg-[#0a0a0a] flex items-center justify-center px-4">
+				<div className="max-w-md text-center">
+					<div className="font-serif text-[24px] text-white mb-2">This question is broken</div>
+					<div className="font-sans text-[14px] text-[#888] mb-6">
+						The data for question {currentIndex + 1} is malformed and we couldn't render it. Pick another drill — and ping the project owner with the quiz URL so they can clean up the bad row.
+					</div>
+					<Link href="/claude-code/quiz" className="font-sans text-[13px] text-[#F5B800] hover:underline">Back to launcher →</Link>
+				</div>
+			</main>
+		);
+	}
+
 	const timeStr = timeLeftSec !== null ? `${Math.floor(timeLeftSec / 60)}:${String(timeLeftSec % 60).padStart(2, "0")}` : null;
 	const timeWarning = timeLeftSec !== null && timeLeftSec < 300;
 

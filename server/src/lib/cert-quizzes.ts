@@ -30,6 +30,26 @@ function generateId(): string {
 	return `qz_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Postgres JSONB stores whatever JSON we INSERT — there's no schema-level
+// guarantee the column is an array of {key,text}. Generation paths validate
+// before inserting (see cert-generation.ts), but we've seen rows leak through
+// (likely from older codepaths or hand-fixes), and one bad row crashes the
+// quiz frontend with `u.choices.map is not a function`. Validate at read
+// time so the API never serves a question we can't render.
+function isValidChoices(c: unknown): c is { key: "A" | "B" | "C" | "D"; text: string }[] {
+	if (!Array.isArray(c) || c.length !== 4) return false;
+	const expected = new Set(["A", "B", "C", "D"]);
+	const seen = new Set<string>();
+	for (const item of c) {
+		if (!item || typeof item !== "object") return false;
+		const o = item as Record<string, unknown>;
+		if (typeof o.key !== "string" || !expected.has(o.key)) return false;
+		if (typeof o.text !== "string") return false;
+		seen.add(o.key);
+	}
+	return seen.size === 4;
+}
+
 // In-process question lookup that also checks generated_questions in the DB.
 // Cached weakly per-process; falls through to seed bank if not in cache.
 const generatedCache = new Map<string, CertQuestion>();
@@ -58,6 +78,12 @@ export async function loadGeneratedQuestion(
 	`;
 	if (rows.length === 0) return undefined;
 	const r = rows[0];
+	if (!isValidChoices(r.choices)) {
+		console.error(
+			`[cert-quizzes] dropping generated question ${r.id} — malformed choices (expected 4-element array of {key,text}, got ${typeof r.choices})`,
+		);
+		return undefined;
+	}
 	const q: CertQuestion = {
 		id: r.id,
 		scenario: r.scenario as ScenarioId,
@@ -111,7 +137,14 @@ async function getGeneratedPoolForUser(
 		ORDER BY generated_at DESC
 		LIMIT 200
 	`;
-	return rows.map((r) => {
+	const out: CertQuestion[] = [];
+	for (const r of rows) {
+		if (!isValidChoices(r.choices)) {
+			console.error(
+				`[cert-quizzes] skipping generated question ${r.id} from pool — malformed choices`,
+			);
+			continue;
+		}
 		const q: CertQuestion = {
 			id: r.id,
 			scenario: r.scenario as ScenarioId,
@@ -127,8 +160,9 @@ async function getGeneratedPoolForUser(
 			studyTags: r.study_tags,
 		};
 		generatedCache.set(q.id, q);
-		return q;
-	});
+		out.push(q);
+	}
+	return out;
 }
 
 export async function createQuiz(userId: string, config: QuizConfig): Promise<Quiz> {
