@@ -56,9 +56,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 	// Bounce to the deep-link the user was originally heading for, falling
 	// back to the launcher. Only allow same-app paths to prevent open
-	// redirects.
-	const dest = nextHint && nextHint.startsWith("/") ? nextHint : "/claude-code/quiz";
-	const res = NextResponse.redirect(new URL(dest, baseUrl));
+	// redirects. The `?signed_in=google` flag is read once by the
+	// destination page to fire a PostHog `signed_in` event, then stripped
+	// from the URL via router.replace so refreshes don't re-fire.
+	const baseDest = nextHint && nextHint.startsWith("/") ? nextHint : "/claude-code/quiz";
+	const destUrl = new URL(baseDest, baseUrl);
+	destUrl.searchParams.set("signed_in", "google");
+	const res = NextResponse.redirect(destUrl);
 
 	const secure = process.env.NODE_ENV === "production";
 	res.cookies.set(XORS_SESSION_COOKIE, sessionKey, {

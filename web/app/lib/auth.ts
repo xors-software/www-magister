@@ -99,3 +99,14 @@ export async function resetWithRecoveryCode(
 		throw new Error(data.error || "Reset failed");
 	}
 }
+
+export async function reportQuestion(questionId: string, reason: string): Promise<void> {
+	const res = await apiFetch("/cert/questions/report", {
+		method: "POST",
+		body: JSON.stringify({ questionId, reason }),
+	});
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}));
+		throw new Error(data.error || "Couldn't submit report");
+	}
+}

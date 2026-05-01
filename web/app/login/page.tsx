@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { login } from "@/lib/auth";
+import { track } from "@/lib/analytics";
 import { buildXorsSignInUrl } from "@/lib/xors";
 
 function LoginInner() {
@@ -30,7 +31,11 @@ function LoginInner() {
 			// back to api.xors.xyz/api/users/authenticate. Sets either a
 			// reps_session or xors_session cookie based on which path
 			// won. The frontend doesn't care which.
-			await login(email, password);
+			const result = await login(email, password);
+			track({
+				name: "signed_in",
+				properties: { method: result.authMethod === "local" ? "password_local" : "password_xors" },
+			});
 			router.push(next || "/claude-code/quiz");
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Sign-in failed.");

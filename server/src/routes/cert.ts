@@ -25,6 +25,7 @@ import {
 	type ScenarioId,
 } from "../lib/cert-types";
 import { generateAdaptiveQuestionsAsync } from "../lib/cert-generation";
+import { sql } from "../lib/pg";
 
 function publicQuestion(q: CertQuestion) {
 	return {
@@ -281,4 +282,35 @@ export const certRoutes = new Elysia({ prefix: "/cert" })
 			return { error: "Sign in to view your dashboard." };
 		}
 		return aggregateForUser(userId);
-	});
+	})
+	// User-submitted reports of bad questions (contradictory stems, wrong
+	// keys, ambiguous phrasing). Logged loudly to stdout so we can grep
+	// `[report]` in Railway logs and act on them — and stored in
+	// question_reports for a future review queue.
+	.post(
+		"/questions/report",
+		async ({ body, set, userId, user }) => {
+			if (!userId || !user) {
+				set.status = 401;
+				return { error: "Sign in to report a question." };
+			}
+			const reason = body.reason?.trim() ?? "";
+			const reportId = `qr_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+			await sql`
+				INSERT INTO question_reports (id, question_id, user_id, reason)
+				VALUES (${reportId}, ${body.questionId}, ${userId}, ${reason || null})
+			`;
+			console.log("\n========== QUESTION REPORTED ==========");
+			console.log(`[report] question: ${body.questionId}`);
+			console.log(`[report] by:       ${user.email} (${userId})`);
+			console.log(`[report] reason:   ${reason || "(no reason given)"}`);
+			console.log("=======================================\n");
+			return { ok: true };
+		},
+		{
+			body: t.Object({
+				questionId: t.String({ minLength: 1 }),
+				reason: t.Optional(t.String()),
+			}),
+		},
+	);

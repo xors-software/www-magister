@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { apiFetch, fetchMe } from "@/lib/auth";
+import { apiFetch, fetchMe, reportQuestion } from "@/lib/auth";
+import { track } from "@/lib/analytics";
 
 type Choice = { key: "A" | "B" | "C" | "D"; text: string };
 type PublicQuestion = {
@@ -55,6 +56,33 @@ export default function QuizRunner() {
 	// no need to round-trip again on Next.
 	const [nextQuestion, setNextQuestion] = useState<PublicQuestion | null>(null);
 	const startTimeRef = useRef<number>(Date.now());
+
+	// "Report this question" state — local to the current question. Resets
+	// on next() so each question gets its own clean report slot.
+	const [reportOpen, setReportOpen] = useState(false);
+	const [reportText, setReportText] = useState("");
+	const [reportSubmitting, setReportSubmitting] = useState(false);
+	const [reportSubmitted, setReportSubmitted] = useState(false);
+	const [reportError, setReportError] = useState("");
+
+	async function submitReport() {
+		if (!question) return;
+		setReportError("");
+		setReportSubmitting(true);
+		try {
+			await reportQuestion(question.id, reportText);
+			track({
+				name: "question_reported",
+				properties: { questionId: question.id, hasReason: reportText.trim().length > 0 },
+			});
+			setReportSubmitted(true);
+			setReportText("");
+		} catch (err) {
+			setReportError(err instanceof Error ? err.message : "Couldn't submit report");
+		} finally {
+			setReportSubmitting(false);
+		}
+	}
 
 	useEffect(() => {
 		(async () => {
@@ -146,6 +174,16 @@ export default function QuizRunner() {
 			const data = await res.json();
 			setReveal(data.reveal);
 			setNextQuestion(data.nextQuestion ?? null);
+			if (question) {
+				track({
+					name: "question_answered",
+					properties: {
+						questionId: question.id,
+						correct: !!data.reveal?.isCorrect,
+						track: "claude-code",
+					},
+				});
+			}
 		} catch {
 			setError("Failed to submit answer.");
 		} finally {
@@ -160,10 +198,23 @@ export default function QuizRunner() {
 		setReveal(null);
 		setSelected(null);
 		setNextQuestion(null);
+		// Reset report state for the new question.
+		setReportOpen(false);
+		setReportText("");
+		setReportSubmitted(false);
+		setReportError("");
 	}
 
 	async function finish() {
 		await apiFetch(`/cert/quiz/${quizId}/complete`, { method: "POST" });
+		track({
+			name: "quiz_completed",
+			properties: {
+				mode: config?.mode ?? "unknown",
+				total: totalQuestions,
+				track: "claude-code",
+			},
+		});
 		router.push(`/claude-code/quiz/${quizId}/results`);
 	}
 
@@ -366,6 +417,59 @@ export default function QuizRunner() {
 						>
 							{isLast ? "See results →" : "Next question →"}
 						</button>
+
+						{/* Report this question — small, unobtrusive. The reveal
+						    screen is the right moment because the user has now
+						    seen the explanation and can judge whether the
+						    answer/key are coherent. */}
+						<div className="pt-2">
+							{reportSubmitted ? (
+								<p className="text-center font-sans text-[12px] text-emerald-400">
+									Thanks — we'll take a look.
+								</p>
+							) : reportOpen ? (
+								<div className="rounded-xl border border-[#1a1a1a] bg-[#0d0d0d] p-4">
+									<label className="block font-sans text-[11px] font-semibold text-[#888] uppercase tracking-[0.08em] mb-2">
+										What's off about this question?
+									</label>
+									<textarea
+										value={reportText}
+										onChange={(e) => setReportText(e.target.value)}
+										placeholder="Optional. e.g. 'stem and answer contradict' or 'two answers are correct'"
+										rows={3}
+										className="w-full px-3 py-2 rounded-lg bg-[#111] border border-[#1a1a1a] focus:border-[#F5B800] outline-none font-sans text-[13px] text-white placeholder:text-[#444] resize-none"
+									/>
+									{reportError && (
+										<p className="mt-2 font-sans text-[12px] text-red-400">{reportError}</p>
+									)}
+									<div className="flex gap-2 mt-3">
+										<button
+											type="button"
+											onClick={() => { setReportOpen(false); setReportText(""); setReportError(""); }}
+											className="px-3 py-2 rounded-lg font-sans text-[13px] text-[#888] hover:text-white"
+										>
+											Cancel
+										</button>
+										<button
+											type="button"
+											onClick={submitReport}
+											disabled={reportSubmitting}
+											className="ml-auto px-4 py-2 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#3a3a3a] font-sans text-[13px] font-medium text-white disabled:opacity-40"
+										>
+											{reportSubmitting ? "Sending…" : "Send report"}
+										</button>
+									</div>
+								</div>
+							) : (
+								<button
+									type="button"
+									onClick={() => setReportOpen(true)}
+									className="block w-full text-center font-sans text-[12px] text-[#555] hover:text-[#888] transition-colors"
+								>
+									Something off about this question?
+								</button>
+							)}
+						</div>
 					</div>
 				)}
 			</div>
