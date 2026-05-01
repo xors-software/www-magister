@@ -5,6 +5,7 @@ import { APP_CONFIG } from "@/config"
 import type { Metadata } from "next"
 import { NewsreaderFont, DMSansFont, DMMonoFont } from "@/fonts/fonts"
 import { Toaster } from "@/components/toasts/Toaster"
+import AnalyticsProvider from "./components/AnalyticsProvider"
 
 export const metadata: Metadata = {
 	title: `${APP_CONFIG.NAME} — Pass the Anthropic Claude Code certification`,
@@ -31,8 +32,10 @@ export default function RootLayout({
 	return (
 		<html lang="en" className={cn(NewsreaderFont.variable, DMSansFont.variable, DMMonoFont.variable)}>
 			<body className="font-serif antialiased bg-[#0a0a0a] text-[#e8e8e8]">
-				{children}
-				<Toaster />
+				<AnalyticsProvider>
+					{children}
+					<Toaster />
+				</AnalyticsProvider>
 			</body>
 		</html>
 	)

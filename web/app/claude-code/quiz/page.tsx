@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiFetch, fetchMe, logout, type User } from "@/lib/auth";
+import { identifyUser, resetAnalytics, track } from "@/lib/analytics";
 
 type Scenario = { id: string; label: string; tagline: string; questionCount: number };
 type Domain = { id: string; label: string; questionCount: number };
@@ -27,6 +28,7 @@ const DOMAIN_ACCENT: Record<string, string> = {
 
 export default function QuizLauncher() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const [me, setMe] = useState<User | null>(null);
 	const [authChecked, setAuthChecked] = useState(false);
 	const [mode, setMode] = useState<"quick" | "exam" | "scenario" | "domain" | "gotcha">("quick");
@@ -46,8 +48,19 @@ export default function QuizLauncher() {
 			}
 			setMe(user);
 			setAuthChecked(true);
+			identifyUser(user);
+			// Fresh sign-in via OAuth: /oauth redirects here with
+			// ?signed_in=google. Fire the event once, then strip the
+			// param so a refresh doesn't re-fire.
+			const signedInVia = searchParams.get("signed_in");
+			if (signedInVia === "google") {
+				track({ name: "signed_in", properties: { method: "google" } });
+				const url = new URL(window.location.href);
+				url.searchParams.delete("signed_in");
+				router.replace(`${url.pathname}${url.search}`);
+			}
 		});
-	}, [router]);
+	}, [router, searchParams]);
 
 	useEffect(() => {
 		if (!authChecked) return;
@@ -73,6 +86,14 @@ export default function QuizLauncher() {
 				setLoading(false);
 				return;
 			}
+			track({
+				name: "quiz_started",
+				properties: {
+					mode,
+					count: typeof body.count === "number" ? body.count : count,
+					track: "claude-code",
+				},
+			});
 			router.push(`/claude-code/quiz/${data.id}`);
 		} catch {
 			setError(
@@ -83,6 +104,8 @@ export default function QuizLauncher() {
 	}
 
 	async function handleLogout() {
+		track({ name: "signed_out" });
+		resetAnalytics();
 		await logout();
 		router.push("/login");
 	}

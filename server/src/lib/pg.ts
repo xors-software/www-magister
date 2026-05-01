@@ -196,5 +196,24 @@ export async function runMigrations(): Promise<void> {
 		CREATE INDEX IF NOT EXISTS recovery_codes_user_unused_idx
 			ON recovery_codes(user_id) WHERE used_at IS NULL
 	`;
+	// User-submitted reports of bad questions (contradictory stems, wrong
+	// answer keys, ambiguous phrasing). question_id is just text — seed-bank
+	// questions are static TS, so there's no FK target. We grep [report]
+	// from Railway logs and clean offending rows out of generated_questions
+	// (or fix the TS source for seed entries) until we build a proper review
+	// queue.
+	await sql`
+		CREATE TABLE IF NOT EXISTS question_reports (
+			id TEXT PRIMARY KEY,
+			question_id TEXT NOT NULL,
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			reason TEXT,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)
+	`;
+	await sql`
+		CREATE INDEX IF NOT EXISTS question_reports_question_idx
+			ON question_reports(question_id, created_at DESC)
+	`;
 	migrated = true;
 }
